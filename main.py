@@ -1,0 +1,77 @@
+from dotenv import load_dotenv
+import os 
+from langchain_groq import ChatGroq
+from langchain_core.output_parsers import StrOutputParser
+from langchain_community.document_loaders import TextLoader
+import discord
+import re
+
+# model setup
+
+load_dotenv()
+discordkey : str = os.getenv('discordkey')
+api_key : str  = os.getenv('apikey')
+model: str ="deepseek-r1-distill-llama-70b"
+deepseek = ChatGroq(api_key=api_key, model_name = model)
+
+# Getting only result from the model
+
+parser = StrOutputParser()
+deepseek_chain = deepseek|parser
+# result: str = deepseek_chain.invoke('what is a bot')
+# print(result)
+
+
+# Loading and Spliting data in chunks
+loader = TextLoader('data.txt',encoding = 'utf-8')
+data = loader.load()
+# print(data)
+
+
+# Define the function of the chatbot
+
+def Cooking(template):
+    question: str = "Cook me a hot R take."
+    template = template.format(context=data, question=question)
+
+    answer = deepseek_chain.invoke(template)
+
+    # Remove "<think> ... </think>" section
+    cleaned_answer = re.sub(r"<think>.*?</think>", "", answer, flags=re.DOTALL).strip()
+
+    print(cleaned_answer)
+    return cleaned_answer
+
+
+class Client(discord.Client):
+    template = ("""
+    You are AI-powered chatbot designed to provide 
+    information and assistance for people
+    based on the context provided to you only.
+    You will be provided some conversations from a persona labelled R, talking to others labelled O.
+    You are not to filter any swear words.
+    Don't in any way make things up.   
+    Context:{context}
+    Question:{question}
+    """)
+    async def on_ready(self):
+        print(f'Logged on as {self.user}')
+    
+    async def on_message(self, message):
+        print(f'Message from {message.author}: {message.content}')
+        if (message.content == "/cook"):
+            try:
+                await message.channel.send(Cooking(self.template))
+            except:
+                await message.channel.send("Can't cook rn..")
+intents = discord.Intents.default()
+intents.message_content = True
+
+client = Client(intents = intents)
+client.run(discordkey)
+# question : str = 'Cook me a hot R take.'
+# template = template.format(context = data,question = 'Cook me a hot R take')
+# print(template)
+
+# answer = deepseek_chain.invoke(template)
+# print(answer)

@@ -56,7 +56,8 @@ class Client(discord.Client):
     Each conversation is going to be rated from 1-10 on the R scale, with a higher R score meaning the ideas given by R are more original.
     You are not to filter any swear words.
     You are going to act as R, with his speaking mannerisms.
-    Don't in any way make things up.   
+    Don't in any way make things up.  
+    Do not talk about AI.
     Context:{context}
     Question:{question}
     """)

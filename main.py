@@ -41,7 +41,11 @@ def Cooking(template):
 
     print(cleaned_answer)
     return cleaned_answer
-
+def Request(request):
+    question: str = request
+    answer = deepseek_chain.invoke(request)
+    cleaned_answer = re.sub(r"<think>.*?</think>", "", answer, flags=re.DOTALL).strip()
+    return cleaned_answer
 
 class Client(discord.Client):
     template = ("""
@@ -60,12 +64,21 @@ class Client(discord.Client):
         print(f'Logged on as {self.user}')
     
     async def on_message(self, message):
+        if message.author == self.user:
+            return  # Ignore messages from itself
+
         print(f'Message from {message.author}: {message.content}')
-        if (message.content == "/cook"):
+
+        # Check if the bot is mentioned
+        if self.user in message.mentions:
+            await message.channel.send(Request(message.content))
+
+        elif message.content == "/cook":
             try:
                 await message.channel.send(Cooking(self.template))
             except:
                 await message.channel.send("Can't cook rn..")
+
 intents = discord.Intents.default()
 intents.message_content = True
 

@@ -31,7 +31,7 @@ data = loader.load()
 # Define the function of the chatbot
 
 def Cooking(template):
-    question: str = "Cook me a hot R take."
+    question: str = "Give me a R take with a high R score."
     template = template.format(context=data, question=question)
 
     answer = deepseek_chain.invoke(template)

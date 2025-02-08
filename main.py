@@ -69,15 +69,39 @@ class Client(discord.Client):
 
         print(f'Message from {message.author}: {message.content}')
 
-        # Check if the bot is mentioned
-        if self.user in message.mentions:
-            await message.channel.send(Request(message.content))
+        try:
+            # If bot is mentioned, process the request
+            if self.user in message.mentions:
+                response = Request(message.content)
+            
+            elif message.content == "/cook":
+                response = Cooking(self.template)
 
-        elif message.content == "/cook":
-            try:
-                await message.channel.send(Cooking(self.template))
-            except:
-                await message.channel.send("Can't cook rn..")
+            else:
+                return  # Ignore other messages
+
+            # Send response in chunks
+            for i in range(0, len(response), 2000):
+                await message.channel.send(response[i:i+2000])
+
+        except Exception as e:
+            print(f"Error: {e}")
+            await message.channel.send("An error occurred while processing your request.")
+
+            if message.author == self.user:
+                return  # Ignore messages from itself
+
+            print(f'Message from {message.author}: {message.content}')
+
+            # Check if the bot is mentioned
+            if self.user in message.mentions:
+                await message.channel.send(Request(message.content))
+
+            elif message.content == "/cook":
+                try:
+                    await message.channel.send(Cooking(self.template))
+                except:
+                    await message.channel.send("Can't cook rn..")
 
 intents = discord.Intents.default()
 intents.message_content = True

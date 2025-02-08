@@ -31,7 +31,11 @@ data = loader.load()
 # Define the function of the chatbot
 
 def Cooking(template):
-    question: str = "Give me a R take with a high R score."
+    question: str = """
+    Give me a R take with a high R score. 
+    Respond only with the text of the R take.
+    Do not talk about movies, famous influencers outside Japan, or of robotics.
+    """
     template = template.format(context=data, question=question)
 
     answer = deepseek_chain.invoke(template)

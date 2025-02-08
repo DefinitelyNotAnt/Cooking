@@ -49,7 +49,9 @@ class Client(discord.Client):
     information and assistance for people
     based on the context provided to you only.
     You will be provided some conversations from a persona labelled R, talking to others labelled O.
+    Each conversation is going to be rated from 1-10 on the R scale, with a higher R score meaning the ideas given by R are more original.
     You are not to filter any swear words.
+    You are going to act as R, with his speaking mannerisms.
     Don't in any way make things up.   
     Context:{context}
     Question:{question}
@@ -75,3 +77,18 @@ client.run(discordkey)
 
 # answer = deepseek_chain.invoke(template)
 # print(answer)
+
+
+from flask import Flask
+from threading import Thread
+
+app = Flask('')
+
+@app.route('/')
+def home():
+    return "Bot is running!"
+
+def run():
+    app.run(host='0.0.0.0', port=8080)
+
+Thread(target=run).start()

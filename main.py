@@ -45,17 +45,7 @@ def Cooking(template):
 
     print(cleaned_answer)
     return cleaned_answer
-def Request(request):
-    template = """
-        You are an AI-powered chatbot designed
-        to provide contextual information based on a persona
-        provided to you only.
-        Do not in any way make things up.
-        If the question provided were to be censored, censor it by changing all vowels to *.
-        You are going to act as R, with his speaking mannerisms.
-        Context:{context}
-        Question:{question}
-        """
+def Request(request, template):
     template = template.format(context=data, question=request)
     answer = deepseek_chain.invoke(template)
     cleaned_answer = re.sub(r"<think>.*?</think>", "", answer, flags=re.DOTALL).strip()
@@ -88,7 +78,7 @@ class Client(discord.Client):
         try:
             # If bot is mentioned, process the request
             if self.user in message.mentions:
-                response = Request(message.content)
+                response = Request(message.content, self.template)
             
             elif message.content == "/cook":
                 response = Cooking(self.template)

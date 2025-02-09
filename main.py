@@ -46,15 +46,25 @@ def Cooking(template):
     print(cleaned_answer)
     return cleaned_answer
 def Request(request):
-    question: str = request
-    answer = deepseek_chain.invoke(request)
+    template = """
+        You are an AI-powered chatbot designed
+        to provide contextual information based on a persona
+        provided to you only.
+        Do not in any way make things up.
+        If the question provided were to be censored, censor it by changing all vowels to *.
+        You are going to act as R, with his speaking mannerisms.
+        Context:{context}
+        Question:{question}
+        """
+    template = template.format(context=data, question=request)
+    answer = deepseek_chain.invoke(template)
     cleaned_answer = re.sub(r"<think>.*?</think>", "", answer, flags=re.DOTALL).strip()
     return cleaned_answer
 
 class Client(discord.Client):
     template = ("""
     You are AI-powered chatbot designed to provide 
-    information and assistance for people
+    humour and novel ideas for people
     based on the context provided to you only.
     You will be provided some conversations from a persona labelled R, talking to others labelled O.
     Each conversation is going to be rated from 1-10 on the R scale, with a higher R score meaning the ideas given by R are more original.

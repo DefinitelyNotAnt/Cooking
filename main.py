@@ -96,6 +96,46 @@ async def pcr_create(interaction: discord.Interaction, name: str, item: str, pri
 
     await interaction.response.send_message(f"**PCR '{name}' Created!**\nItem: {item}")
 
+@pcr.command(name="view", description="View your own PCRs, shared PCRs, or a specific PCR.")
+async def pcr_view(interaction: discord.Interaction, name: str = None):
+    user_id = str(interaction.user.id)
+
+    if name:
+        pcr = pcrs_collection.find_one({
+            "name": name,
+            "$or": [
+                {"user_id": user_id},
+                {"shared_with": user_id}
+            ]
+        })
+        if not pcr:
+            await interaction.response.send_message("PCR not found or you don't have access.")
+            return
+        response = (
+            f"**PCR Name:** {pcr['name']}\n"
+            f"**Item:** {pcr['item']}\n"
+            f"**Sources:** {', '.join(pcr['sources']) if pcr['sources'] else 'None'}\n"
+            f"**Rationale:** {pcr['rationale'] or 'None'}"
+        )
+    else:
+        query = {} if user_has_maincomm_role(interaction.user) else {
+            "$or": [{"user_id": user_id}, {"shared_with": user_id}]
+        }
+        pcrs = list(pcrs_collection.find(query))
+
+        if not pcrs:
+            response = "No PCRs found."
+        else:
+            response = "\n\n".join(
+                f"**PCR Name:** {pcr['name']}\n"
+                f"**Item:** {pcr['item']}\n"
+                f"**Sources:** {', '.join(pcr['sources']) if pcr['sources'] else 'None'}\n"
+                f"**Rationale:** {pcr['rationale'] or 'None'}"
+                for pcr in pcrs
+            )
+
+    await interaction.response.send_message(response)
+
 @pcr.command(name="add", description="Add data to an existing PCR")
 async def pcr_add(interaction: discord.Interaction, name: str, source: str = None, rationale: str = None):
     user_id = str(interaction.user.id)
@@ -118,6 +158,92 @@ async def pcr_add(interaction: discord.Interaction, name: str, source: str = Non
     log_audit(user_id, user_name, name, "add", f"Added source/rationale: {source or rationale}")
 
     await interaction.response.send_message(f"PCR '{name}' updated.")
+
+@pcr.command(name="edit", description="Edit an existing PCR")
+async def pcr_edit(interaction: discord.Interaction, name: str, item: str = None, sources: str = None, rationale: str = None):
+    if not user_can_access_pcr(interaction.user, pcr):
+        await interaction.response.send_message("You don't have permission to edit this PCR.")
+        return
+
+    user_id = str(interaction.user.id)
+    pcr = pcrs_collection.find_one({"user_id": user_id, "name": name})
+
+    if not pcr:
+        await interaction.response.send_message("PCR not found.")
+        return
+
+    update_fields = {}
+    if item:
+        update_fields["item"] = item
+    if sources:
+        update_fields["sources"] = sources.split(",")  # Example input: link1,link2
+    if rationale:
+        update_fields["rationale"] = rationale
+
+    pcrs_collection.update_one({"_id": pcr["_id"]}, {"$set": update_fields})
+
+    if not pcr["private"]:
+        log_audit(user_id, name, "edit", "Edited PCR details")
+
+    pcr = pcrs_collection.find_one({"user_id": user_id, "name": name})  # Fetch updated PCR
+    response = f"**Updated PCR '{name}'**\nItem: {pcr['item']}\nSources: {', '.join(pcr['sources'])}\nRationale: {pcr['rationale']}"
+
+    await interaction.response.send_message(response)
+
+@pcr.command(name="remove", description="Remove data from an existing PCR")
+async def pcr_remove(interaction: discord.Interaction, name: str, source: str = None, remove_rationale: bool = False):
+    if not user_can_access_pcr(interaction.user, pcr):
+        await interaction.response.send_message("You don't have permission to edit this PCR.")
+        return
+
+    user_id = str(interaction.user.id)
+    pcr = pcrs_collection.find_one({"user_id": user_id, "name": name})
+
+    if not pcr:
+        await interaction.response.send_message("PCR not found.")
+        return
+
+    update_fields = {}
+    if source:
+        update_fields["sources"] = [s for s in pcr["sources"] if s != source]
+    if remove_rationale:
+        update_fields["rationale"] = ""
+
+    pcrs_collection.update_one({"_id": pcr["_id"]}, {"$set": update_fields})
+
+    if not pcr["private"]:
+        log_audit(user_id, name, "remove", f"Removed source/rationale: {source or 'rationale'}")
+
+    pcr = pcrs_collection.find_one({"user_id": user_id, "name": name})  # Fetch updated PCR
+    response = f"**Updated PCR '{name}'**\nItem: {pcr['item']}\nSources: {', '.join(pcr['sources'])}\nRationale: {pcr['rationale']}"
+
+    await interaction.response.send_message(response)
+    
+@pcr.command(name="share", description="Share a PCR with another user")
+async def pcr_share(interaction: discord.Interaction, name: str, user: discord.Member):
+    user_id = str(interaction.user.id)
+    pcr = pcrs_collection.find_one({"user_id": user_id, "name": name})
+
+    if not pcr:
+        await interaction.response.send_message("PCR not found.")
+        return
+
+    if pcr["user_id"] != user_id:
+        await interaction.response.send_message("Only the owner can share this PCR.")
+        return
+
+    shared_user_id = str(user.id)
+    shared_with = pcr.get("shared_with", [])
+    if shared_user_id in shared_with:
+        await interaction.response.send_message(f"{user.name} already has access to this PCR.")
+        return
+
+    shared_with.append(shared_user_id)
+    pcrs_collection.update_one({"_id": pcr["_id"]}, {"$set": {"shared_with": shared_with}})
+
+    log_audit(user_id, interaction.user.name, name, "share", f"Shared with {user.name}")
+
+    await interaction.response.send_message(f"PCR '{name}' shared with {user.name}.")
 
 @pcr.command(name="delete", description="Delete an existing PCR")
 async def pcr_delete(interaction: discord.Interaction, name: str):

@@ -5,7 +5,7 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_community.document_loaders import TextLoader
 import discord
 from discord.utils import get
-from discord import app_commands
+from discord.ext import commands
 import re
 
 # model setup

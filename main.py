@@ -42,7 +42,7 @@ def Request(request, template):
     return cleaned_answer
 
 # Define Context Menu Command
-@app_commands.context_menu(name="pcr")
+@app_commands.command(name="pcr")
 async def pcr_command(interaction: discord.Interaction):
     await interaction.response.send_message("Hello PCR making!")
 

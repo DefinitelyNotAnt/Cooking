@@ -169,19 +169,7 @@ class Client(discord.Client):
 
             await member.remove_roles(role)
             print(f"Removed {role.name} from {member.display_name}")
-    # Example command: /pcr
-    @app_commands.command(name="pcr", description="Returns a PCR message")
-    async def pcr_command(self, interaction: discord.Interaction):
-        await interaction.response.send_message("Hello PCR making!")
-
-    # Example command: /cook
-    @app_commands.command(name="cook", description="Get a hot R take")
-    async def cook_command(self, interaction: discord.Interaction):
-        if any(role.name == "Cooking" for role in interaction.user.roles):
-            response = Cooking(self.template)
-        else:
-            response = "You don't have permission to use this command."
-        await interaction.response.send_message(response)
+    
 
     
 
@@ -191,6 +179,13 @@ intents.message_content = True
 intents.reactions = True  
 
 client = Client(intents=intents)
+tree = app_commands.CommandTree(client)
+
+
+@tree.context_menu(name="pcr", description="Returns a PCR message")
+async def pcr_command(self, interaction: discord.Interaction):
+    await interaction.response.send_message("Hello PCR making!")
+
 client.run(discordkey)
 # question : str = 'Cook me a hot R take.'
 # template = template.format(context = data,question = 'Cook me a hot R take')

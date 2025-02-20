@@ -40,11 +40,30 @@ def Request(request, template):
     answer = deepseek_chain.invoke(template)
     cleaned_answer = re.sub(r"<think>.*?</think>", "", answer, flags=re.DOTALL).strip()
     return cleaned_answer
+pcr = app_commands.Group(name="pcr", description="Manage PCR tasks")
+# # Define Context Menu Command
+# @app_commands.command(name="pcr")
+# async def pcr_command(interaction: discord.Interaction):
+#     await interaction.response.send_message("Hello PCR making!")
+@pcr.command(name="create", description="Create a new PCR")
+async def create(interaction: discord.Interaction, name: str):
+    await interaction.response.send_message(f"PCR '{name}' created!")
 
-# Define Context Menu Command
-@app_commands.command(name="pcr")
-async def pcr_command(interaction: discord.Interaction):
-    await interaction.response.send_message("Hello PCR making!")
+@pcr.command(name="add", description="Add data to an existing PCR")
+async def add(interaction: discord.Interaction, name: str, data: str):
+    await interaction.response.send_message(f"Added '{data}' to PCR '{name}'!")
+
+@pcr.command(name="edit", description="Edit an existing PCR")
+async def edit(interaction: discord.Interaction, name: str, data: str):
+    await interaction.response.send_message(f"PCR '{name}' edited with new data: '{data}'!")
+
+@pcr.command(name="remove", description="Remove data from an existing PCR")
+async def remove(interaction: discord.Interaction, name: str, data: str):
+    await interaction.response.send_message(f"Removed '{data}' from PCR '{name}'!")
+
+@pcr.command(name="delete", description="Delete an existing PCR")
+async def delete(interaction: discord.Interaction, name: str):
+    await interaction.response.send_message(f"PCR '{name}' deleted!")
 
 # Discord Bot Client
 class Client(discord.Client):
@@ -68,12 +87,14 @@ class Client(discord.Client):
     async def on_ready(self):
         print(f'Logged on as {self.user}')
         try:
-            self.tree.add_command(pcr_command)  # Register context menu command
+            # self.tree.add_command(pcr_command)  # Register context menu command
             await self.tree.sync()
             print("Slash commands and context menus synced!")
         except Exception as e:
             print(f"Failed to sync commands: {e}")
-
+    async def setup_hook(self):
+        self.tree.add_command(pcr)  # Register the group here
+        
     async def on_message(self, message):
         if message.author == self.user:
             return  # Ignore bot's own messages

@@ -7,6 +7,30 @@ import discord
 from discord.utils import get
 from discord import app_commands
 import re
+from pymongo import MongoClient
+import os
+
+mongo_uri = os.getenv("MONGO_URI")
+client = MongoClient(mongo_uri)
+db = client["PCRDatabase"]
+users_collection = db["users"]
+pcrs_collection = db["pcrs"]
+audit_logs_collection = db["audit_logs"]
+AUDIT_ROLES = "Maincomm"
+def user_has_maincomm_role(user) -> bool:
+    """Check if the user has Maincomm role."""
+    return any(role.name == AUDIT_ROLES for role in user.roles)
+
+
+def log_audit(user_id, pcr_name, action, details=""):
+    """Log PCR changes unless it's private."""
+    audit_logs_collection.insert_one({
+        "user_id": user_id,
+        "pcr_name": pcr_name,
+        "action": action,
+        "details": details
+    })
+
 
 # Load environment variables
 load_dotenv()
@@ -46,24 +70,136 @@ pcr = app_commands.Group(name="pcr", description="Manage PCR tasks")
 # async def pcr_command(interaction: discord.Interaction):
 #     await interaction.response.send_message("Hello PCR making!")
 @pcr.command(name="create", description="Create a new PCR")
-async def create(interaction: discord.Interaction, name: str):
+async def pcr_create(interaction: discord.Interaction, name: str, item: str, private: bool = False):
+    user_id = str(interaction.user.id)
+    if pcrs_collection.find_one({"user_id": user_id, "name": name}):
+        await interaction.response.send_message("You already have a PCR with this name.")
+        return
+
+    pcrs_collection.insert_one({
+        "user_id": user_id,
+        "name": name,
+        "item": item,
+        "sources": [],
+        "rationale": "",
+        "private": private
+    })
+
+    if not private:
+        log_audit(user_id, name, "create")
+
     await interaction.response.send_message(f"PCR '{name}' created!")
 
 @pcr.command(name="add", description="Add data to an existing PCR")
-async def add(interaction: discord.Interaction, name: str, data: str):
-    await interaction.response.send_message(f"Added '{data}' to PCR '{name}'!")
+async def pcr_add(interaction: discord.Interaction, name: str, source: str = None, rationale: str = None):
+    user_id = str(interaction.user.id)
+    pcr = pcrs_collection.find_one({"user_id": user_id, "name": name})
+
+    if not pcr:
+        await interaction.response.send_message("PCR not found.")
+        return
+
+    update_fields = {}
+    if source:
+        update_fields["sources"] = pcr["sources"] + [source]
+    if rationale:
+        update_fields["rationale"] = rationale
+
+    pcrs_collection.update_one({"_id": pcr["_id"]}, {"$set": update_fields})
+
+    if not pcr["private"]:
+        log_audit(user_id, name, "add", f"Added source/rationale: {source or rationale}")
+
+    await interaction.response.send_message(f"Added to PCR '{name}'.")
 
 @pcr.command(name="edit", description="Edit an existing PCR")
-async def edit(interaction: discord.Interaction, name: str, data: str):
-    await interaction.response.send_message(f"PCR '{name}' edited with new data: '{data}'!")
+async def pcr_edit(interaction: discord.Interaction, name: str, item: str = None, sources: str = None, rationale: str = None):
+    user_id = str(interaction.user.id)
+    pcr = pcrs_collection.find_one({"user_id": user_id, "name": name})
+
+    if not pcr:
+        await interaction.response.send_message("PCR not found.")
+        return
+
+    update_fields = {}
+    if item:
+        update_fields["item"] = item
+    if sources:
+        update_fields["sources"] = sources.split(",")  # Example input: link1,link2
+    if rationale:
+        update_fields["rationale"] = rationale
+
+    pcrs_collection.update_one({"_id": pcr["_id"]}, {"$set": update_fields})
+
+    if not pcr["private"]:
+        log_audit(user_id, name, "edit", "Edited PCR details")
+
+    await interaction.response.send_message(f"PCR '{name}' edited.")
 
 @pcr.command(name="remove", description="Remove data from an existing PCR")
-async def remove(interaction: discord.Interaction, name: str, data: str):
-    await interaction.response.send_message(f"Removed '{data}' from PCR '{name}'!")
+async def pcr_remove(interaction: discord.Interaction, name: str, source: str = None, remove_rationale: bool = False):
+    user_id = str(interaction.user.id)
+    pcr = pcrs_collection.find_one({"user_id": user_id, "name": name})
+
+    if not pcr:
+        await interaction.response.send_message("PCR not found.")
+        return
+
+    update_fields = {}
+    if source:
+        update_fields["sources"] = [s for s in pcr["sources"] if s != source]
+    if remove_rationale:
+        update_fields["rationale"] = ""
+
+    pcrs_collection.update_one({"_id": pcr["_id"]}, {"$set": update_fields})
+
+    if not pcr["private"]:
+        log_audit(user_id, name, "remove", f"Removed source/rationale: {source or 'rationale'}")
+
+    await interaction.response.send_message(f"Removed from PCR '{name}'.")
 
 @pcr.command(name="delete", description="Delete an existing PCR")
-async def delete(interaction: discord.Interaction, name: str):
-    await interaction.response.send_message(f"PCR '{name}' deleted!")
+async def pcr_delete(interaction: discord.Interaction, name: str):
+    user_id = str(interaction.user.id)
+    pcr = pcrs_collection.find_one({"user_id": user_id, "name": name})
+
+    if not pcr:
+        await interaction.response.send_message("PCR not found.")
+        return
+
+    pcrs_collection.delete_one({"_id": pcr["_id"]})
+
+    if not pcr["private"]:
+        log_audit(user_id, name, "delete", "Deleted PCR")
+
+    await interaction.response.send_message(f"PCR '{name}' deleted.")
+
+@pcr.command(name="pcr_view", description="View your own PCR or all PCRs if Maincomm.")
+async def pcr_view(interaction: discord.Interaction):
+    user_id = str(interaction.user.id)
+
+    if user_has_maincomm_role(interaction.user):
+        pcrs = pcrs_collection.find()
+    else:
+        pcrs = pcrs_collection.find({"user_id": user_id})
+
+    response = ""
+    for pcr in pcrs:
+        response += f"**{pcr['name']}**\nItem: {pcr['item']}\nSources: {', '.join(pcr['sources'])}\nRationale: {pcr['rationale']}\n\n"
+
+    await interaction.response.send_message(response or "No PCRs found.")
+@tree.command(name="audit_log", description="View the audit log (Maincomm only).")
+async def audit_log(interaction: discord.Interaction):
+    if not user_has_maincomm_role(interaction.user):
+        await interaction.response.send_message("You don't have permission to view the audit log.")
+        return
+
+    logs = audit_logs_collection.find()
+    response = ""
+    for log in logs:
+        response += f"User: {log['user_id']}, PCR: {log['pcr_name']}, Action: {log['action']}, Details: {log['details']}\n"
+
+    await interaction.response.send_message(response or "No audit logs found.")
 
 # Discord Bot Client
 class Client(discord.Client):

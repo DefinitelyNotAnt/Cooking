@@ -172,7 +172,7 @@ async def pcr_add(interaction: discord.Interaction, name: str, source: str = Non
 
     log_audit(user_id, user_name, name, "add", f"Added source/rationale: {source or rationale}")
 
-    await interaction.response.send_message(f"**PCR '{name}' Created!**\nItem: {item}\n"
+    await interaction.response.send_message(f"**PCR '{name}' Updated!**\nItem: {pcr['item']}\n"
                                         f"**Sources:** {', '.join(pcr['sources']) if pcr['sources'] else 'None'}\n"
                                         f"**Rationale:** {pcr['rationale'] or 'None'}\n"
                                         f"**Status:** {pcr['status'] or "Draft?"}"

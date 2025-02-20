@@ -22,6 +22,7 @@ users_collection = db["users"]
 pcrs_collection = db["pcrs"]
 audit_logs_collection = db["audit_logs"]
 AUDIT_ROLES = "Maincomm"
+PCR_ROLES = "Subcomm 25/26"
 
 def user_has_maincomm_role(user) -> bool:
     """Check if the user has Maincomm role."""
@@ -81,6 +82,7 @@ async def pcr_create(interaction: discord.Interaction, name: str, item: str, pri
         await interaction.response.send_message("You already have a PCR with this name.")
         return
 
+    # Insert the new PCR document into the collection
     pcrs_collection.insert_one({
         "user_id": user_id,
         "name": name,
@@ -91,13 +93,19 @@ async def pcr_create(interaction: discord.Interaction, name: str, item: str, pri
         "shared_with": []
     })
 
+    # Retrieve the PCR document to access its fields
+    pcr = pcrs_collection.find_one({"user_id": user_id, "name": name})
+
+    if not pcr:
+        await interaction.response.send_message("An error occurred while creating the PCR.")
+        return
     if not private:
         log_audit(user_id, user_name, name, "create")
 
+    # Send the response with the correct data
     await interaction.response.send_message(f"**PCR '{name}' Created!**\nItem: {item}\n"
                                             f"**Sources:** {', '.join(pcr['sources']) if pcr['sources'] else 'None'}\n"
-                                            f"**Rationale:** {pcr['rationale'] or 'None'}"
-                                            )
+                                            f"**Rationale:** {pcr['rationale'] or 'None'}")
 
 @pcr.command(name="view", description="View your own PCRs, shared PCRs, or a specific PCR.")
 async def pcr_view(interaction: discord.Interaction, name: str = None):

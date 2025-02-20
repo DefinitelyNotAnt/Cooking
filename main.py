@@ -4,6 +4,7 @@ from langchain_groq import ChatGroq
 from langchain_core.output_parsers import StrOutputParser
 from langchain_community.document_loaders import TextLoader
 import discord
+from discord.utils import get
 import re
 
 # model setup
@@ -52,6 +53,9 @@ def Request(request, template):
     return cleaned_answer
 
 class Client(discord.Client):
+    ROLE_NAME = "Member"  
+    EMOJI = ":white_check_mark:"  
+    TRACKED_MESSAGE_ID = 1342100878760480819 
     template = ("""
     You are AI-powered chatbot designed to provide 
     humour and novel ideas for people
@@ -74,15 +78,27 @@ class Client(discord.Client):
             return  # Ignore messages from itself
 
         print(f'Message from {message.author}: {message.content}')
-
+        if message.content.startswith("!track"):
+            if message.author.guild_permissions.administrator:
+                # Extract the message ID from the command (e.g., "!track 123456789012345678")
+                parts = message.content.split()
+                if len(parts) == 2 and parts[1].isdigit():
+                    self.TRACKED_MESSAGE_ID = int(parts[1])
+                    await message.channel.send(f"Now tracking reactions on message ID: {self.TRACKED_MESSAGE_ID}")
+                else:
+                    await message.channel.send("Usage: `!track <message_id>`")
+            else:
+                await message.channel.send("You need admin permissions to use this command.")
         try:
             # If bot is mentioned, process the request
             if self.user in message.mentions:
                 response = Request(message.content, self.template)
             
             elif message.content == "/cook":
-                response = Cooking(self.template)
-
+                if any(role.name == "Cooking" for role in message.author.roles):
+                    response = Cooking(self.template)
+                else:
+                    response = "You don't have permission to use this command."
             else:
                 return  # Ignore other messages
 
@@ -92,7 +108,6 @@ class Client(discord.Client):
 
         except Exception as e:
             print(f"Error: {e}")
-            await message.channel.send("An error occurred while processing your request.")
 
             if message.author == self.user:
                 return  # Ignore messages from itself
@@ -108,6 +123,44 @@ class Client(discord.Client):
                     await message.channel.send(Cooking(self.template))
                 except:
                     await message.channel.send("Can't cook rn..")
+    async def on_raw_reaction_add(self, payload):
+        """ Assigns a role when a user reacts with the specified emoji. """
+        if self.TRACKED_MESSAGE_ID and payload.message_id == self.TRACKED_MESSAGE_ID and str(payload.emoji) == self.EMOJI:
+            guild = self.get_guild(payload.guild_id)
+            if guild is None:
+                return
+
+            role = get(guild.roles, name=self.ROLE_NAME)
+            if role is None:
+                print(f"Role '{self.ROLE_NAME}' not found.")
+                return
+
+            member = guild.get_member(payload.user_id)
+            if member is None or member.bot:
+                return  # Ignore bots
+
+            await member.add_roles(role)
+            print(f"Assigned {role.name} to {member.display_name}")
+
+    async def on_raw_reaction_remove(self, payload):
+        """ Removes a role when a user removes their reaction. """
+        if self.TRACKED_MESSAGE_ID and payload.message_id == self.TRACKED_MESSAGE_ID and str(payload.emoji) == self.EMOJI:
+            guild = self.get_guild(payload.guild_id)
+            if guild is None:
+                return
+
+            role = get(guild.roles, name=self.ROLE_NAME)
+            if role is None:
+                print(f"Role '{self.ROLE_NAME}' not found.")
+                return
+
+            member = guild.get_member(payload.user_id)
+            if member is None or member.bot:
+                return  # Ignore bots
+
+            await member.remove_roles(role)
+            print(f"Removed {role.name} from {member.display_name}")
+    
 
 intents = discord.Intents.default()
 intents.message_content = True

@@ -94,7 +94,10 @@ async def pcr_create(interaction: discord.Interaction, name: str, item: str, pri
     if not private:
         log_audit(user_id, user_name, name, "create")
 
-    await interaction.response.send_message(f"**PCR '{name}' Created!**\nItem: {item}")
+    await interaction.response.send_message(f"**PCR '{name}' Created!**\nItem: {item}\n"
+                                            f"**Sources:** {', '.join(pcr['sources']) if pcr['sources'] else 'None'}\n"
+                                            f"**Rationale:** {pcr['rationale'] or 'None'}"
+                                            )
 
 @pcr.command(name="view", description="View your own PCRs, shared PCRs, or a specific PCR.")
 async def pcr_view(interaction: discord.Interaction, name: str = None):
@@ -157,7 +160,10 @@ async def pcr_add(interaction: discord.Interaction, name: str, source: str = Non
 
     log_audit(user_id, user_name, name, "add", f"Added source/rationale: {source or rationale}")
 
-    await interaction.response.send_message(f"PCR '{name}' updated.")
+    await interaction.response.send_message(f"**PCR '{name}' Created!**\nItem: {item}\n"
+                                        f"**Sources:** {', '.join(pcr['sources']) if pcr['sources'] else 'None'}\n"
+                                        f"**Rationale:** {pcr['rationale'] or 'None'}"
+                                        )
 
 @pcr.command(name="edit", description="Edit an existing PCR")
 async def pcr_edit(interaction: discord.Interaction, name: str, item: str = None, sources: str = None, rationale: str = None):

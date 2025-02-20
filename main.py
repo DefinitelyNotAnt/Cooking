@@ -10,7 +10,14 @@ import re
 from pymongo import MongoClient
 import os
 
+# Load environment variables
+load_dotenv()
+discordkey: str = os.getenv('discordkey')
+api_key: str = os.getenv('apikey')
+model: str = "deepseek-r1-distill-llama-70b"
 mongo_uri = os.getenv("mongo_uri")
+
+
 client = MongoClient(mongo_uri)
 db = client["PCRDatabase"]
 users_collection = db["users"]
@@ -32,11 +39,7 @@ def log_audit(user_id, pcr_name, action, details=""):
     })
 
 
-# Load environment variables
-load_dotenv()
-discordkey: str = os.getenv('discordkey')
-api_key: str = os.getenv('apikey')
-model: str = "deepseek-r1-distill-llama-70b"
+
 
 # Initialize model
 deepseek = ChatGroq(api_key=api_key, model_name=model)

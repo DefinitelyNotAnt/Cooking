@@ -15,7 +15,7 @@ load_dotenv()
 discordkey: str = os.getenv('discordkey')
 api_key: str = os.getenv('apikey')
 model: str = "deepseek-r1-distill-llama-70b"
-mongo_uri = os.getenv("mongo_uri")
+mongo_uri = os.getenv("mongouri")
 
 
 client = MongoClient(mongo_uri)

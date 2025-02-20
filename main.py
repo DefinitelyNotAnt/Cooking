@@ -54,7 +54,7 @@ def Request(request, template):
 
 class Client(discord.Client):
     ROLE_NAME = "Member"  
-    EMOJI = ":white_check_mark:"  
+    EMOJI = "✅"
     TRACKED_MESSAGE_ID = 1342100878760480819 
     template = ("""
     You are AI-powered chatbot designed to provide 
@@ -135,7 +135,7 @@ class Client(discord.Client):
                 print(f"Role '{self.ROLE_NAME}' not found.")
                 return
 
-            member = guild.get_member(payload.user_id)
+            member = await guild.fetch_member(payload.user_id)
             if member is None or member.bot:
                 return  # Ignore bots
 
@@ -164,6 +164,9 @@ class Client(discord.Client):
 
 intents = discord.Intents.default()
 intents.message_content = True
+intents.reactions = True  # Allow reaction tracking
+
+client = Client(intents=intents)
 
 client = Client(intents = intents)
 client.run(discordkey)

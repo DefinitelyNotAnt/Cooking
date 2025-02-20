@@ -84,7 +84,7 @@ class Client(discord.Client):
             # Register context menu command
         self.tree.add_command(self.pcr_command)
 
-    @app_commands.context_menu(name="pcr", description="Returns a PCR message")
+    @app_commands.context_menu(name="pcr")
     async def pcr_command(self, interaction: discord.Interaction):
         await interaction.response.send_message("Hello PCR making!")
     

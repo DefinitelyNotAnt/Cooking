@@ -191,7 +191,7 @@ async def pcr_view(interaction: discord.Interaction):
         response += f"**{pcr['name']}**\nItem: {pcr['item']}\nSources: {', '.join(pcr['sources'])}\nRationale: {pcr['rationale']}\n\n"
 
     await interaction.response.send_message(response or "No PCRs found.")
-@tree.command(name="audit_log", description="View the audit log (Maincomm only).")
+@pcr.command(name="audit_log", description="View the audit log (Maincomm only).")
 async def audit_log(interaction: discord.Interaction):
     if not user_has_maincomm_role(interaction.user):
         await interaction.response.send_message("You don't have permission to view the audit log.")

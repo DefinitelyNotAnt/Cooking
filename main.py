@@ -81,6 +81,12 @@ class Client(discord.Client):
             print("Slash commands synced!")
         except Exception as e:
             print(f"Failed to sync commands: {e}")
+            # Register context menu command
+        self.tree.add_command(self.pcr_command)
+
+    @app_commands.context_menu(name="pcr", description="Returns a PCR message")
+    async def pcr_command(self, interaction: discord.Interaction):
+        await interaction.response.send_message("Hello PCR making!")
     
     async def on_message(self, message):
         if message.author == self.user:
@@ -173,18 +179,14 @@ class Client(discord.Client):
 
     
 
+    
+
 intents = discord.Intents.default()
 intents.members = True
 intents.message_content = True
 intents.reactions = True  
 
 client = Client(intents=intents)
-tree = app_commands.CommandTree(client)
-
-
-@tree.context_menu(name="pcr", description="Returns a PCR message")
-async def pcr_command(self, interaction: discord.Interaction):
-    await interaction.response.send_message("Hello PCR making!")
 
 client.run(discordkey)
 # question : str = 'Cook me a hot R take.'

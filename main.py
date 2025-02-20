@@ -10,7 +10,7 @@ import re
 from pymongo import MongoClient
 import os
 
-mongo_uri = os.getenv("MONGO_URI")
+mongo_uri = os.getenv("mongo_uri")
 client = MongoClient(mongo_uri)
 db = client["PCRDatabase"]
 users_collection = db["users"]

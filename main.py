@@ -5,6 +5,7 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_community.document_loaders import TextLoader
 import discord
 from discord.utils import get
+from discord import app_commands
 import re
 
 # model setup
@@ -53,6 +54,9 @@ def Request(request, template):
     return cleaned_answer
 
 class Client(discord.Client):
+    def __init__(self, intents):
+        super().__init__(intents=intents)
+        self.tree = app_commands.CommandTree(self)
     ROLE_NAME = "Member"  
     EMOJI = "✅"
     TRACKED_MESSAGE_ID = 1342100878760480819 
@@ -72,6 +76,11 @@ class Client(discord.Client):
     """)
     async def on_ready(self):
         print(f'Logged on as {self.user}')
+        try:
+            await self.tree.sync()  # Sync application commands with Discord
+            print("Slash commands synced!")
+        except Exception as e:
+            print(f"Failed to sync commands: {e}")
     
     async def on_message(self, message):
         if message.author == self.user:
@@ -160,6 +169,10 @@ class Client(discord.Client):
 
             await member.remove_roles(role)
             print(f"Removed {role.name} from {member.display_name}")
+    @app_commands.command(name="pcr", description="Returns a PCR message")
+    async def pcr_command(self, interaction: discord.Interaction):
+        await interaction.response.send_message("Hello PCR making!")
+
     
 
 intents = discord.Intents.default()

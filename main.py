@@ -91,7 +91,11 @@ async def pcr_create(interaction: discord.Interaction, name: str, item: str, pri
     if not private:
         log_audit(user_id, name, "create")
 
-    await interaction.response.send_message(f"PCR '{name}' created!")
+    pcr = pcrs_collection.find_one({"user_id": user_id, "name": name})  # Fetch updated PCR
+    response = f"**PCR '{name}' Created!**\nItem: {pcr['item']}\nSources: {', '.join(pcr['sources'])}\nRationale: {pcr['rationale']}"
+
+    await interaction.response.send_message(response)
+
 
 @pcr.command(name="add", description="Add data to an existing PCR")
 async def pcr_add(interaction: discord.Interaction, name: str, source: str = None, rationale: str = None):
@@ -113,7 +117,11 @@ async def pcr_add(interaction: discord.Interaction, name: str, source: str = Non
     if not pcr["private"]:
         log_audit(user_id, name, "add", f"Added source/rationale: {source or rationale}")
 
-    await interaction.response.send_message(f"Added to PCR '{name}'.")
+    pcr = pcrs_collection.find_one({"user_id": user_id, "name": name})  # Fetch updated PCR
+    response = f"**Updated PCR '{name}'**\nItem: {pcr['item']}\nSources: {', '.join(pcr['sources'])}\nRationale: {pcr['rationale']}"
+
+    await interaction.response.send_message(response)
+
 
 @pcr.command(name="edit", description="Edit an existing PCR")
 async def pcr_edit(interaction: discord.Interaction, name: str, item: str = None, sources: str = None, rationale: str = None):
@@ -137,7 +145,11 @@ async def pcr_edit(interaction: discord.Interaction, name: str, item: str = None
     if not pcr["private"]:
         log_audit(user_id, name, "edit", "Edited PCR details")
 
-    await interaction.response.send_message(f"PCR '{name}' edited.")
+    pcr = pcrs_collection.find_one({"user_id": user_id, "name": name})  # Fetch updated PCR
+    response = f"**Updated PCR '{name}'**\nItem: {pcr['item']}\nSources: {', '.join(pcr['sources'])}\nRationale: {pcr['rationale']}"
+
+    await interaction.response.send_message(response)
+
 
 @pcr.command(name="remove", description="Remove data from an existing PCR")
 async def pcr_remove(interaction: discord.Interaction, name: str, source: str = None, remove_rationale: bool = False):
@@ -159,7 +171,10 @@ async def pcr_remove(interaction: discord.Interaction, name: str, source: str = 
     if not pcr["private"]:
         log_audit(user_id, name, "remove", f"Removed source/rationale: {source or 'rationale'}")
 
-    await interaction.response.send_message(f"Removed from PCR '{name}'.")
+    pcr = pcrs_collection.find_one({"user_id": user_id, "name": name})  # Fetch updated PCR
+    response = f"**Updated PCR '{name}'**\nItem: {pcr['item']}\nSources: {', '.join(pcr['sources'])}\nRationale: {pcr['rationale']}"
+
+    await interaction.response.send_message(response)
 
 @pcr.command(name="delete", description="Delete an existing PCR")
 async def pcr_delete(interaction: discord.Interaction, name: str):

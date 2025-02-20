@@ -190,7 +190,7 @@ intents.members = True
 intents.message_content = True
 intents.reactions = True  
 
-client = Client(command_prefix='$',intents=intents)
+client = Client(intents=intents)
 client.run(discordkey)
 # question : str = 'Cook me a hot R take.'
 # template = template.format(context = data,question = 'Cook me a hot R take')

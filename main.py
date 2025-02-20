@@ -5,7 +5,7 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_community.document_loaders import TextLoader
 import discord
 from discord.utils import get
-from discord.ext import commands
+from discord import app_commands
 import re
 
 # model setup
@@ -169,9 +169,19 @@ class Client(discord.Client):
 
             await member.remove_roles(role)
             print(f"Removed {role.name} from {member.display_name}")
+    # Example command: /pcr
     @app_commands.command(name="pcr", description="Returns a PCR message")
     async def pcr_command(self, interaction: discord.Interaction):
         await interaction.response.send_message("Hello PCR making!")
+
+    # Example command: /cook
+    @app_commands.command(name="cook", description="Get a hot R take")
+    async def cook_command(self, interaction: discord.Interaction):
+        if any(role.name == "Cooking" for role in interaction.user.roles):
+            response = Cooking(self.template)
+        else:
+            response = "You don't have permission to use this command."
+        await interaction.response.send_message(response)
 
     
 

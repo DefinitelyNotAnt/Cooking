@@ -215,15 +215,15 @@ async def pcr_edit(interaction: discord.Interaction, name: str, item: str = None
 
 @pcr.command(name="remove", description="Remove data from an existing PCR")
 async def pcr_remove(interaction: discord.Interaction, name: str, source: str = None, remove_rationale: bool = False):
-    if not user_can_access_pcr(interaction.user, pcr):
-        await interaction.response.send_message("You don't have permission to edit this PCR.")
-        return
 
     user_id = str(interaction.user.id)
     pcr = pcrs_collection.find_one({"user_id": user_id, "name": name})
 
     if not pcr:
         await interaction.response.send_message("PCR not found.")
+        return
+    if not user_can_access_pcr(interaction.user, pcr):
+        await interaction.response.send_message("You don't have permission to edit this PCR.")
         return
 
     update_fields = {}
@@ -291,17 +291,11 @@ async def pcr_delete(interaction: discord.Interaction, name: str):
 
 @pcr.command(name="submit", description="Submit your PCR for review")
 async def pcr_submit(interaction: discord.Interaction, name: str):
-    if not user_can_access_pcr(interaction.user, pcr):
-        await interaction.response.send_message("You don't have permission to edit this PCR.")
-        return
-
     user_id = str(interaction.user.id)
     pcr = pcrs_collection.find_one({"user_id": user_id, "name": name})
-
     if not pcr:
         await interaction.response.send_message("PCR not found.")
         return
-
     update_fields = {}
     update_fields["status"] = "Pending"
 

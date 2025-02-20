@@ -163,8 +163,9 @@ class Client(discord.Client):
     
 
 intents = discord.Intents.default()
+intents.members = True
 intents.message_content = True
-intents.reactions = True  # Allow reaction tracking
+intents.reactions = True  
 
 client = Client(intents=intents)
 

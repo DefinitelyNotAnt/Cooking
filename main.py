@@ -309,7 +309,7 @@ async def pcr_submit(interaction: discord.Interaction, name: str):
         log_audit(user_id, user_name, name, "submit", "Submit PCR for review")
 
     pcr = pcrs_collection.find_one({"user_id": user_id, "name": name})  # Fetch updated PCR
-    response = (f"**Updated PCR '{name}'**\n"
+    response = (f"**PCR '{name}' Submitted for review**\n"
     f"Item: {pcr['item']}\n"
     f"Sources: {', '.join(pcr['sources'])}\n"
     f"Rationale: {pcr['rationale']}\n"
@@ -403,10 +403,14 @@ async def approve(interaction: discord.Interaction, name: str):
     f"**Status:** {pcr['status'] or "Draft?"}")
 
     await interaction.response.send_message(response)
-    users = pcr['shared_with'].append(pcr['user_id'])
+    if pcr['shared_with'] == null:
+        users = [].append(pcr['user_id'])
+    else:
+        print(pcr['shared_with'])
+        users = pcr['shared_with'].append(pcr['user_id'])
     for user in users:
         try:
-            await user.send(f"**PCR '{name}' Approved!**\nItem: {item}\n"
+            await user.send(f"**PCR '{name}' Approved!**\nItem: {pcr['item']}\n"
                                         f"**Sources:** {', '.join(pcr['sources']) if pcr['sources'] else 'None'}\n"
                                         f"**Rationale:** {pcr['rationale'] or 'None'}\n"
                                         f"**Status:** {pcr['status'] or 'Draft'}")
@@ -439,10 +443,14 @@ async def pushback(interaction: discord.Interaction, name: str, reason: str):
     f"**Status:** {pcr['status'] or "Draft?"}")
 
     await interaction.response.send_message(response)
-    users = pcr['shared_with'].append(pcr['user_id'])
+    if pcr['shared_with'] == null:
+        users = [].append(pcr['user_id'])
+    else:
+        print(pcr['shared_with'])
+        users = pcr['shared_with'].append(pcr['user_id'])
     for user in users:
         try:
-            await user.send(f"**PCR '{name}' Pushed back!**\nItem: {item}\n"
+            await user.send(f"**PCR '{name}' Pushed back!**\nItem: {pcr['item']}\n"
                                         f"**Sources:** {', '.join(pcr['sources']) if pcr['sources'] else 'None'}\n"
                                         f"**Rationale:** {pcr['rationale'] or 'None'}\n"
                                         f"**Status:** {pcr['status'] or 'Draft'}\n\n"
@@ -476,10 +484,14 @@ async def reject(interaction: discord.Interaction, name: str, reason: str):
     f"**Status:** {pcr['status'] or "Draft?"}")
 
     await interaction.response.send_message(response)
-    users = pcr['shared_with'].append(pcr['user_id'])
+    if pcr['shared_with'] == null:
+        users = [].append(pcr['user_id'])
+    else:
+        print(pcr['shared_with'])
+        users = pcr['shared_with'].append(pcr['user_id'])
     for user in users:
         try:
-            await user.send(f"**PCR '{name}' Rejected!**\nItem: {item}\n"
+            await user.send(f"**PCR '{name}' Rejected!**\nItem: {pcr['item']}\n"
                                         f"**Sources:** {', '.join(pcr['sources']) if pcr['sources'] else 'None'}\n"
                                         f"**Rationale:** {pcr['rationale'] or 'None'}\n"
                                         f"**Status:** {pcr['status'] or 'Draft'}\n\n"

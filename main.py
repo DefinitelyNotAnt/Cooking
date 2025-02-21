@@ -403,8 +403,8 @@ async def approve(interaction: discord.Interaction, name: str):
     f"**Status:** {pcr['status'] or "Draft?"}")
 
     await interaction.response.send_message(response)
-    if pcr['shared_with'] == null:
-        users = [].append(pcr['user_id'])
+    if not pcr['shared_with']:
+        users = [pcr['user_id']]
     else:
         print(pcr['shared_with'])
         users = pcr['shared_with'].append(pcr['user_id'])
@@ -443,8 +443,8 @@ async def pushback(interaction: discord.Interaction, name: str, reason: str):
     f"**Status:** {pcr['status'] or "Draft?"}")
 
     await interaction.response.send_message(response)
-    if pcr['shared_with'] == null:
-        users = [].append(pcr['user_id'])
+    if not pcr['shared_with']:
+        users = [pcr['user_id']]
     else:
         print(pcr['shared_with'])
         users = pcr['shared_with'].append(pcr['user_id'])
@@ -484,8 +484,8 @@ async def reject(interaction: discord.Interaction, name: str, reason: str):
     f"**Status:** {pcr['status'] or "Draft?"}")
 
     await interaction.response.send_message(response)
-    if pcr['shared_with'] == null:
-        users = [].append(pcr['user_id'])
+    if not pcr['shared_with']:
+        users = [pcr['user_id']]
     else:
         print(pcr['shared_with'])
         users = pcr['shared_with'].append(pcr['user_id'])

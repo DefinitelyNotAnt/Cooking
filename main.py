@@ -1,14 +1,18 @@
 from dotenv import load_dotenv
 import os
+import re
+import asyncio
+import requests
+from bs4 import BeautifulSoup
+from duckduckgo_search import ddg
+
 from langchain_groq import ChatGroq
 from langchain_core.output_parsers import StrOutputParser
 from langchain_community.document_loaders import TextLoader
 import discord
 from discord.utils import get
 from discord import app_commands
-import re
 from pymongo import MongoClient
-import asyncio
 
 # Load environment variables
 load_dotenv()
@@ -71,6 +75,10 @@ def Request(request, template):
     answer = deepseek_chain.invoke(template)
     cleaned_answer = re.sub(r"<think>.*?</think>", "", answer, flags=re.DOTALL).strip()
     return cleaned_answer
+
+#############################################
+# Existing PCR Command Group (unchanged)    #
+#############################################
 
 pcr = app_commands.Group(name="pcr", description="Manage PCR tasks")
 
@@ -175,9 +183,9 @@ async def pcr_add(interaction: discord.Interaction, name: str, source: str = Non
     
     pcr_doc = pcrs_collection.find_one({"user_id": user_id, "name": name})  # Fetch updated PCR
     await interaction.response.send_message(f"**PCR '{name}' Updated!**\nItem: {pcr_doc['item']}\n"
-                                        f"**Sources:** {', '.join(pcr_doc['sources']) if pcr_doc['sources'] else 'None'}\n"
-                                        f"**Rationale:** {pcr_doc['rationale'] or 'None'}\n"
-                                        f"**Status:** {pcr_doc['status'] or 'Draft?'}")
+                                              f"**Sources:** {', '.join(pcr_doc['sources']) if pcr_doc['sources'] else 'None'}\n"
+                                              f"**Rationale:** {pcr_doc['rationale'] or 'None'}\n"
+                                              f"**Status:** {pcr_doc['status'] or 'Draft?'}")
 
 @pcr.command(name="edit", description="Edit an existing PCR")
 async def pcr_edit(interaction: discord.Interaction, name: str, item: str = None, sources: str = None, rationale: str = None):
@@ -399,7 +407,6 @@ async def approve(interaction: discord.Interaction, name: str):
     if not pcr_doc.get('shared_with'):
         users_to_notify = [pcr_doc['user_id']]
     else:
-        # Ensure the owner's id is included
         users_to_notify = pcr_doc['shared_with'][:]
         if pcr_doc['user_id'] not in users_to_notify:
             users_to_notify.append(pcr_doc['user_id'])
@@ -502,30 +509,57 @@ async def reject(interaction: discord.Interaction, name: str, reason: str):
             except discord.Forbidden:
                 await interaction.response.send_message("I couldn't send a DM to one or more users. Please ask them to enable DMs.")
 
+#############################################
+# New Source Search Command Group           #
+#############################################
+
+# This group provides an interactive reaction-based interface for searching item sources.
+source_group = app_commands.Group(name="source", description="Search for item sources")
+
+def extract_details(url: str):
+    """
+    Given a URL, extract cost and brand information heuristically.
+    """
+    try:
+        response = requests.get(url, timeout=5)
+        if response.status_code != 200:
+            return "N/A", "N/A"
+        soup = BeautifulSoup(response.text, 'html.parser')
+        text = soup.get_text()
+        cost_matches = re.findall(r'\$\d+(?:\.\d{1,2})?', text)
+        cost = cost_matches[0] if cost_matches else "N/A"
+        og_site = soup.find("meta", property="og:site_name")
+        brand = og_site["content"] if og_site and "content" in og_site.attrs else "N/A"
+        return cost, brand
+    except Exception as e:
+        print(f"Error extracting details from {url}: {e}")
+        return "N/A", "N/A"
 
 def search_item(query: str):
-    # Return a list of dicts with keys: 'name', 'cost', 'brand', 'source'
-    # For example purposes, we create dummy data:
-    dummy_results = []
-    for i in range(1, 21):
-        dummy_results.append({
-            'name': f"Coloured Pencil Pack {i}",
-            'cost': f"${i+0.99}",
-            'brand': f"Brand {i}",
-            'source': f"https://example.com/item{i}"
-        })
-    return dummy_results
-
-# Create an app command group for source tasks
-source_group = app_commands.Group(name="source", description="Search and browse item sources")
+    """
+    Use DuckDuckGo to search for the given query and return a list of result dicts.
+    Each dict contains: 'name', 'cost', 'brand', 'source'.
+    """
+    results = ddg(query, max_results=20)
+    output = []
+    if results:
+        for r in results:
+            url = r.get('href', '')
+            cost, brand = extract_details(url)
+            output.append({
+                'name': r.get('title', 'No title'),
+                'cost': cost,
+                'brand': brand,
+                'source': url
+            })
+    return output
 
 @source_group.command(name="search", description="Search for item sources")
 async def source_search(interaction: discord.Interaction, item: str):
-    results = search_item(item)  # your search function here
+    results = search_item(item)
     items_per_page = 9
     page = 0
 
-    # Helper to build the embed for the current page
     def build_embed(page_index):
         embed = discord.Embed(title=f"Search results for '{item}'",
                               description="React with a number to select an item.\n"
@@ -541,17 +575,14 @@ async def source_search(interaction: discord.Interaction, item: str):
         return embed
 
     embed = build_embed(page)
-    # Use followup to send a message (since slash command responses are ephemeral by default)
-    msg = await interaction.response.send_message(embed=embed, ephemeral=False)
-    message = await interaction.original_response()  # get the sent message
+    await interaction.response.send_message(embed=embed)
+    message = await interaction.original_response()
 
-    # Define emoji sets
     number_emojis = ['1️⃣','2️⃣','3️⃣','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣']
     left_emoji = '◀️'
     right_emoji = '▶️'
     cancel_emoji = '❌'
 
-    # Add reactions for current items
     current_results = results[page*items_per_page:(page+1)*items_per_page]
     for i in range(len(current_results)):
         await message.add_reaction(number_emojis[i])
@@ -564,7 +595,6 @@ async def source_search(interaction: discord.Interaction, item: str):
     def check(reaction, user):
         return (user == interaction.user and reaction.message.id == message.id and 
                 str(reaction.emoji) in number_emojis + [left_emoji, right_emoji, cancel_emoji])
-
     try:
         reaction, user = await interaction.client.wait_for("reaction_add", timeout=60.0, check=check)
     except asyncio.TimeoutError:
@@ -585,7 +615,6 @@ async def source_search(interaction: discord.Interaction, item: str):
 
             def detail_check(r, u):
                 return u == interaction.user and r.message.id == detail_msg.id and str(r.emoji) in ['✅','❌']
-
             try:
                 detail_reaction, _ = await interaction.client.wait_for("reaction_add", timeout=60.0, check=detail_check)
             except asyncio.TimeoutError:
@@ -594,16 +623,14 @@ async def source_search(interaction: discord.Interaction, item: str):
             if str(detail_reaction.emoji) == '✅':
                 await interaction.followup.send(f"Source link: {selected['source']}")
             else:
-                # User chose to go back: recall the command or update the embed
                 await interaction.followup.send("Returning to results.", ephemeral=True)
-                await source_search(interaction, item)  # Alternatively, update the embed manually
+                await source_search(interaction, item)
     elif str(reaction.emoji) == left_emoji:
         if page > 0:
             page -= 1
-            # Update the embed to the previous page (update reactions accordingly)
             new_embed = build_embed(page)
             await message.edit(embed=new_embed)
-            # (Reactions should be cleared/updated as needed)
+            # (Update reactions as needed)
     elif str(reaction.emoji) == right_emoji:
         if (page+1)*items_per_page < len(results):
             page += 1
@@ -612,10 +639,11 @@ async def source_search(interaction: discord.Interaction, item: str):
     elif str(reaction.emoji) == cancel_emoji:
         await message.edit(content="Cancelled.", embed=None)
         return
-# pcr.add_command(source_search)
 
+#############################################
+# Discord Bot Client                        #
+#############################################
 
-# Discord Bot Client
 class Client(discord.Client):
     ROLE_NAME = "Member"  
     EMOJI = "✅"
@@ -647,6 +675,7 @@ class Client(discord.Client):
 
     async def setup_hook(self):
         self.tree.add_command(pcr)
+        self.tree.add_command(source_group)
 
     async def on_message(self, message):
         if message.author == self.user:
@@ -707,7 +736,6 @@ class Client(discord.Client):
 
             await member.remove_roles(role)
             print(f"Removed {role.name} from {member.display_name}")
-
 
 # Initialize bot with intents
 intents = discord.Intents.default()

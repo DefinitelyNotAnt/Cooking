@@ -536,11 +536,11 @@ def extract_details(url: str):
         return "N/A", "N/A"
 
 async def search_item(query: str):
-    """Asynchronously search for an item using DuckDuckGo."""
+    """Search for an item using DuckDuckGo."""
     results_list = []
-    async with DDGS() as ddgs:
-        results = [r async for r in ddgs.text(query, max_results=10)]
-    
+    ddgs = DDGS()  # No async context manager needed
+    results = ddgs.text(query, max_results=10)  # Directly call text()
+
     for r in results:
         url = r.get('href', '')
         cost, brand = await extract_details(url)
@@ -552,7 +552,6 @@ async def search_item(query: str):
         })
     
     return results_list
-
 @source_group.command(name="search", description="Search for item sources")
 async def search_command(interaction: discord.Interaction, item: str):
     await interaction.response.defer()  # Prevents timeout error

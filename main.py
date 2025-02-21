@@ -171,7 +171,8 @@ async def pcr_add(interaction: discord.Interaction, name: str, source: str = Non
     pcrs_collection.update_one({"_id": pcr["_id"]}, {"$set": update_fields})
 
     log_audit(user_id, user_name, name, "add", f"Added source/rationale: {source or rationale}")
-
+    
+    pcr = pcrs_collection.find_one({"user_id": user_id, "name": name})  # Fetch updated PCR
     await interaction.response.send_message(f"**PCR '{name}' Updated!**\nItem: {pcr['item']}\n"
                                         f"**Sources:** {', '.join(pcr['sources']) if pcr['sources'] else 'None'}\n"
                                         f"**Rationale:** {pcr['rationale'] or 'None'}\n"
@@ -405,6 +406,9 @@ class Client(discord.Client):
     def __init__(self, intents):
         super().__init__(intents=intents)
         self.tree = app_commands.CommandTree(self)
+        ROLE_NAME = "Member"  
+        EMOJI = "✅"
+        TRACKED_MESSAGE_ID = 1342100878760480819 
         self.template = """
         You are an AI-powered chatbot designed to provide 
         humor and novel ideas for people based on the given context.
@@ -451,11 +455,49 @@ class Client(discord.Client):
         except Exception as e:
             print(f"Error: {e}")
             await message.channel.send("An error occurred. Please try again.")
+    async def on_raw_reaction_add(self, payload):
+        """ Assigns a role when a user reacts with the specified emoji. """
+        if self.TRACKED_MESSAGE_ID and payload.message_id == self.TRACKED_MESSAGE_ID and str(payload.emoji) == self.EMOJI:
+            guild = self.get_guild(payload.guild_id)
+            if guild is None:
+                return
+
+            role = get(guild.roles, name=self.ROLE_NAME)
+            if role is None:
+                print(f"Role '{self.ROLE_NAME}' not found.")
+                return
+
+            member = await guild.fetch_member(payload.user_id)
+            if member is None or member.bot:
+                return  # Ignore bots
+
+            await member.add_roles(role)
+            print(f"Assigned {role.name} to {member.display_name}")
+
+    async def on_raw_reaction_remove(self, payload):
+        """ Removes a role when a user removes their reaction. """
+        if self.TRACKED_MESSAGE_ID and payload.message_id == self.TRACKED_MESSAGE_ID and str(payload.emoji) == self.EMOJI:
+            guild = self.get_guild(payload.guild_id)
+            if guild is None:
+                return
+
+            role = get(guild.roles, name=self.ROLE_NAME)
+            if role is None:
+                print(f"Role '{self.ROLE_NAME}' not found.")
+                return
+
+            member = guild.get_member(payload.user_id)
+            if member is None or member.bot:
+                return  # Ignore bots
+
+            await member.remove_roles(role)
+            print(f"Removed {role.name} from {member.display_name}")
 
 # Initialize bot with intents
 intents = discord.Intents.default()
 intents.members = True
 intents.message_content = True
+intents.reactions = True  
 
 client = Client(intents=intents)
 client.run(discordkey)

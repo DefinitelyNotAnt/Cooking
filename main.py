@@ -4,8 +4,7 @@ import re
 import asyncio
 import requests
 from bs4 import BeautifulSoup
-from duckduckgo_search import ddg
-
+from duckduckgo_search import DDGS
 from langchain_groq import ChatGroq
 from langchain_core.output_parsers import StrOutputParser
 from langchain_community.document_loaders import TextLoader
@@ -534,14 +533,15 @@ def extract_details(url: str):
     except Exception as e:
         print(f"Error extracting details from {url}: {e}")
         return "N/A", "N/A"
-
 def search_item(query: str):
     """
     Use DuckDuckGo to search for the given query and return a list of result dicts.
     Each dict contains: 'name', 'cost', 'brand', 'source'.
     """
-    results = ddg(query, max_results=20)
     output = []
+    with DDGS() as ddgs:
+        # The 'text' method returns a list of dictionaries; adjust parameters as needed
+        results = ddgs.text(query, max_results=20)
     if results:
         for r in results:
             url = r.get('href', '')

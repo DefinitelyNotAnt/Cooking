@@ -543,7 +543,7 @@ async def search_item(query: str):
 
     for r in results:
         url = r.get('href', '')
-        cost, brand = await extract_details(url)
+        cost, brand = extract_details(url) 
         results_list.append({
             'name': r.get('title', 'No title'),
             'cost': cost,
@@ -552,6 +552,7 @@ async def search_item(query: str):
         })
     
     return results_list
+
 @source_group.command(name="search", description="Search for item sources")
 async def search_command(interaction: discord.Interaction, item: str):
     await interaction.response.defer()  # Prevents timeout error

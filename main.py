@@ -12,6 +12,7 @@ import discord
 from discord.utils import get
 from discord import app_commands
 from pymongo import MongoClient
+import aiohttp
 
 # Load environment variables
 load_dotenv()
@@ -533,113 +534,41 @@ def extract_details(url: str):
     except Exception as e:
         print(f"Error extracting details from {url}: {e}")
         return "N/A", "N/A"
-def search_item(query: str):
-    """
-    Use DuckDuckGo to search for the given query and return a list of result dicts.
-    Each dict contains: 'name', 'cost', 'brand', 'source'.
-    """
-    output = []
-    with DDGS() as ddgs:
-        # The 'text' method returns a list of dictionaries; adjust parameters as needed
-        results = ddgs.text(query, max_results=20)
-    if results:
-        for r in results:
-            url = r.get('href', '')
-            cost, brand = extract_details(url)
-            output.append({
-                'name': r.get('title', 'No title'),
-                'cost': cost,
-                'brand': brand,
-                'source': url
-            })
-    return output
+
+async def search_item(query: str):
+    """Asynchronously search for an item using DuckDuckGo."""
+    results_list = []
+    async with DDGS() as ddgs:
+        results = [r async for r in ddgs.text(query, max_results=10)]
+    
+    for r in results:
+        url = r.get('href', '')
+        cost, brand = await extract_details(url)
+        results_list.append({
+            'name': r.get('title', 'No title'),
+            'cost': cost,
+            'brand': brand,
+            'source': url
+        })
+    
+    return results_list
 
 @source_group.command(name="search", description="Search for item sources")
-async def source_search(interaction: discord.Interaction, item: str):
-    results = search_item(item)
-    items_per_page = 9
-    page = 0
+async def search_command(interaction: discord.Interaction, item: str):
+    await interaction.response.defer()  # Prevents timeout error
 
-    def build_embed(page_index):
-        embed = discord.Embed(title=f"Search results for '{item}'",
-                              description="React with a number to select an item.\n"
-                                          "Use ◀️/▶️ to navigate pages, ❌ to cancel.")
-        start = page_index * items_per_page
-        end = start + items_per_page
-        for idx, result in enumerate(results[start:end], start=1):
-            embed.add_field(name=f"{idx}. {result['name']}",
-                            value=f"Cost: {result['cost']} | Brand: {result['brand']}",
-                            inline=False)
-        total_pages = (len(results) - 1) // items_per_page + 1
-        embed.set_footer(text=f"Page {page_index+1}/{total_pages}")
-        return embed
-
-    embed = build_embed(page)
-    await interaction.response.send_message(embed=embed)
-    message = await interaction.original_response()
-
-    number_emojis = ['1️⃣','2️⃣','3️⃣','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣']
-    left_emoji = '◀️'
-    right_emoji = '▶️'
-    cancel_emoji = '❌'
-
-    current_results = results[page*items_per_page:(page+1)*items_per_page]
-    for i in range(len(current_results)):
-        await message.add_reaction(number_emojis[i])
-    if page > 0:
-        await message.add_reaction(left_emoji)
-    if (page+1)*items_per_page < len(results):
-        await message.add_reaction(right_emoji)
-    await message.add_reaction(cancel_emoji)
-
-    def check(reaction, user):
-        return (user == interaction.user and reaction.message.id == message.id and 
-                str(reaction.emoji) in number_emojis + [left_emoji, right_emoji, cancel_emoji])
-    try:
-        reaction, user = await interaction.client.wait_for("reaction_add", timeout=60.0, check=check)
-    except asyncio.TimeoutError:
-        await message.edit(content="Timed out.", embed=None)
+    search_results = await search_item(item)
+    
+    if not search_results:
+        await interaction.followup.send("No results found.")
         return
 
-    if str(reaction.emoji) in number_emojis:
-        idx = number_emojis.index(str(reaction.emoji))
-        result_index = page * items_per_page + idx
-        if result_index < len(results):
-            selected = results[result_index]
-            detail_embed = discord.Embed(title=selected['name'],
-                                         description=f"Cost: {selected['cost']}\nBrand: {selected['brand']}\nSource: {selected['source']}")
-            detail_embed.set_footer(text="React with ✅ to confirm, ❌ to go back.")
-            detail_msg = await interaction.followup.send(embed=detail_embed, wait=True)
-            await detail_msg.add_reaction('✅')
-            await detail_msg.add_reaction('❌')
-
-            def detail_check(r, u):
-                return u == interaction.user and r.message.id == detail_msg.id and str(r.emoji) in ['✅','❌']
-            try:
-                detail_reaction, _ = await interaction.client.wait_for("reaction_add", timeout=60.0, check=detail_check)
-            except asyncio.TimeoutError:
-                await detail_msg.edit(content="Timed out.", embed=None)
-                return
-            if str(detail_reaction.emoji) == '✅':
-                await interaction.followup.send(f"Source link: {selected['source']}")
-            else:
-                await interaction.followup.send("Returning to results.", ephemeral=True)
-                await source_search(interaction, item)
-    elif str(reaction.emoji) == left_emoji:
-        if page > 0:
-            page -= 1
-            new_embed = build_embed(page)
-            await message.edit(embed=new_embed)
-            # (Update reactions as needed)
-    elif str(reaction.emoji) == right_emoji:
-        if (page+1)*items_per_page < len(results):
-            page += 1
-            new_embed = build_embed(page)
-            await message.edit(embed=new_embed)
-    elif str(reaction.emoji) == cancel_emoji:
-        await message.edit(content="Cancelled.", embed=None)
-        return
-
+    embed = discord.Embed(title=f"Search Results for {item}", color=discord.Color.blue())
+    
+    for i, res in enumerate(search_results, start=1):
+        embed.add_field(name=f"{i}. {res['name']}", value=f"💰 {res['cost']} | 🏷️ {res['brand']} | 🔗 [Source]({res['source']})", inline=False)
+    
+    await interaction.followup.send(embed=embed)
 #############################################
 # Discord Bot Client                        #
 #############################################

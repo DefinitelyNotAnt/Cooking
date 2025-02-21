@@ -8,6 +8,7 @@ from discord.utils import get
 from discord import app_commands
 import re
 from pymongo import MongoClient
+import asyncio
 
 # Load environment variables
 load_dotenv()
@@ -501,6 +502,119 @@ async def reject(interaction: discord.Interaction, name: str, reason: str):
             except discord.Forbidden:
                 await interaction.response.send_message("I couldn't send a DM to one or more users. Please ask them to enable DMs.")
 
+
+def search_item(query: str):
+    # Return a list of dicts with keys: 'name', 'cost', 'brand', 'source'
+    # For example purposes, we create dummy data:
+    dummy_results = []
+    for i in range(1, 21):
+        dummy_results.append({
+            'name': f"Coloured Pencil Pack {i}",
+            'cost': f"${i+0.99}",
+            'brand': f"Brand {i}",
+            'source': f"https://example.com/item{i}"
+        })
+    return dummy_results
+
+# Create an app command group for source tasks
+source_group = app_commands.Group(name="source", description="Search and browse item sources")
+
+@source_group.command(name="search", description="Search for item sources")
+async def source_search(interaction: discord.Interaction, item: str):
+    results = search_item(item)  # your search function here
+    items_per_page = 9
+    page = 0
+
+    # Helper to build the embed for the current page
+    def build_embed(page_index):
+        embed = discord.Embed(title=f"Search results for '{item}'",
+                              description="React with a number to select an item.\n"
+                                          "Use ◀️/▶️ to navigate pages, ❌ to cancel.")
+        start = page_index * items_per_page
+        end = start + items_per_page
+        for idx, result in enumerate(results[start:end], start=1):
+            embed.add_field(name=f"{idx}. {result['name']}",
+                            value=f"Cost: {result['cost']} | Brand: {result['brand']}",
+                            inline=False)
+        total_pages = (len(results) - 1) // items_per_page + 1
+        embed.set_footer(text=f"Page {page_index+1}/{total_pages}")
+        return embed
+
+    embed = build_embed(page)
+    # Use followup to send a message (since slash command responses are ephemeral by default)
+    msg = await interaction.response.send_message(embed=embed, ephemeral=False)
+    message = await interaction.original_response()  # get the sent message
+
+    # Define emoji sets
+    number_emojis = ['1️⃣','2️⃣','3️⃣','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣']
+    left_emoji = '◀️'
+    right_emoji = '▶️'
+    cancel_emoji = '❌'
+
+    # Add reactions for current items
+    current_results = results[page*items_per_page:(page+1)*items_per_page]
+    for i in range(len(current_results)):
+        await message.add_reaction(number_emojis[i])
+    if page > 0:
+        await message.add_reaction(left_emoji)
+    if (page+1)*items_per_page < len(results):
+        await message.add_reaction(right_emoji)
+    await message.add_reaction(cancel_emoji)
+
+    def check(reaction, user):
+        return (user == interaction.user and reaction.message.id == message.id and 
+                str(reaction.emoji) in number_emojis + [left_emoji, right_emoji, cancel_emoji])
+
+    try:
+        reaction, user = await interaction.client.wait_for("reaction_add", timeout=60.0, check=check)
+    except asyncio.TimeoutError:
+        await message.edit(content="Timed out.", embed=None)
+        return
+
+    if str(reaction.emoji) in number_emojis:
+        idx = number_emojis.index(str(reaction.emoji))
+        result_index = page * items_per_page + idx
+        if result_index < len(results):
+            selected = results[result_index]
+            detail_embed = discord.Embed(title=selected['name'],
+                                         description=f"Cost: {selected['cost']}\nBrand: {selected['brand']}\nSource: {selected['source']}")
+            detail_embed.set_footer(text="React with ✅ to confirm, ❌ to go back.")
+            detail_msg = await interaction.followup.send(embed=detail_embed, wait=True)
+            await detail_msg.add_reaction('✅')
+            await detail_msg.add_reaction('❌')
+
+            def detail_check(r, u):
+                return u == interaction.user and r.message.id == detail_msg.id and str(r.emoji) in ['✅','❌']
+
+            try:
+                detail_reaction, _ = await interaction.client.wait_for("reaction_add", timeout=60.0, check=detail_check)
+            except asyncio.TimeoutError:
+                await detail_msg.edit(content="Timed out.", embed=None)
+                return
+            if str(detail_reaction.emoji) == '✅':
+                await interaction.followup.send(f"Source link: {selected['source']}")
+            else:
+                # User chose to go back: recall the command or update the embed
+                await interaction.followup.send("Returning to results.", ephemeral=True)
+                await source_search(interaction, item)  # Alternatively, update the embed manually
+    elif str(reaction.emoji) == left_emoji:
+        if page > 0:
+            page -= 1
+            # Update the embed to the previous page (update reactions accordingly)
+            new_embed = build_embed(page)
+            await message.edit(embed=new_embed)
+            # (Reactions should be cleared/updated as needed)
+    elif str(reaction.emoji) == right_emoji:
+        if (page+1)*items_per_page < len(results):
+            page += 1
+            new_embed = build_embed(page)
+            await message.edit(embed=new_embed)
+    elif str(reaction.emoji) == cancel_emoji:
+        await message.edit(content="Cancelled.", embed=None)
+        return
+# pcr.add_command(source_search)
+
+
 # Discord Bot Client
 class Client(discord.Client):
     ROLE_NAME = "Member"  
@@ -593,6 +707,7 @@ class Client(discord.Client):
 
             await member.remove_roles(role)
             print(f"Removed {role.name} from {member.display_name}")
+
 
 # Initialize bot with intents
 intents = discord.Intents.default()

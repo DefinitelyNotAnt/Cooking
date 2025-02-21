@@ -8,6 +8,7 @@ from discord.utils import get
 from discord import app_commands
 import re
 from pymongo import MongoClient
+from discord.ext import commands
 
 # Load environment variables
 load_dotenv()
@@ -23,6 +24,8 @@ pcrs_collection = db["pcrs"]
 audit_logs_collection = db["audit_logs"]
 AUDIT_ROLES = "Maincomm"
 PCR_ROLES = "Subcomm 25/26"
+
+
 
 def user_has_maincomm_role(user) -> bool:
     """Check if the user has Maincomm role."""
@@ -408,8 +411,9 @@ async def approve(interaction: discord.Interaction, name: str):
     else:
         print(pcr['shared_with'])
         users = pcr['shared_with'].append(pcr['user_id'])
-    for user in users:
+    for user_id in users:
         try:
+            user = await bot.fetch_user(int(user_id))  # Fetch the user object
             await user.send(f"**PCR '{name}' Approved!**\nItem: {pcr['item']}\n"
                                         f"**Sources:** {', '.join(pcr['sources']) if pcr['sources'] else 'None'}\n"
                                         f"**Rationale:** {pcr['rationale'] or 'None'}\n"
@@ -448,8 +452,9 @@ async def pushback(interaction: discord.Interaction, name: str, reason: str):
     else:
         print(pcr['shared_with'])
         users = pcr['shared_with'].append(pcr['user_id'])
-    for user in users:
+    for user_id in users:
         try:
+            user = await bot.fetch_user(int(user_id))  # Fetch the user object
             await user.send(f"**PCR '{name}' Pushed back!**\nItem: {pcr['item']}\n"
                                         f"**Sources:** {', '.join(pcr['sources']) if pcr['sources'] else 'None'}\n"
                                         f"**Rationale:** {pcr['rationale'] or 'None'}\n"
@@ -489,8 +494,9 @@ async def reject(interaction: discord.Interaction, name: str, reason: str):
     else:
         print(pcr['shared_with'])
         users = pcr['shared_with'].append(pcr['user_id'])
-    for user in users:
+    for user_id in users:
         try:
+            user = await bot.fetch_user(int(user_id))  # Fetch the user object
             await user.send(f"**PCR '{name}' Rejected!**\nItem: {pcr['item']}\n"
                                         f"**Sources:** {', '.join(pcr['sources']) if pcr['sources'] else 'None'}\n"
                                         f"**Rationale:** {pcr['rationale'] or 'None'}\n"
@@ -598,5 +604,6 @@ intents.members = True
 intents.message_content = True
 intents.reactions = True  
 
+bot = commands.Bot(command_prefix="!", intents=intents)
 client = Client(intents=intents)
 client.run(discordkey)

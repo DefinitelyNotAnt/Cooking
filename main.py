@@ -186,6 +186,7 @@ async def pcr_edit(interaction: discord.Interaction, name: str, item: str = None
         return
 
     user_id = str(interaction.user.id)
+    user_name = interaction.user.name
     pcr = pcrs_collection.find_one({"user_id": user_id, "name": name})
 
     if not pcr:
@@ -203,7 +204,7 @@ async def pcr_edit(interaction: discord.Interaction, name: str, item: str = None
     pcrs_collection.update_one({"_id": pcr["_id"]}, {"$set": update_fields})
 
     if not pcr["private"]:
-        log_audit(user_id, name, "edit", "Edited PCR details")
+        log_audit(user_id, user_name, name, "edit", "Edited PCR details")
 
     pcr = pcrs_collection.find_one({"user_id": user_id, "name": name})  # Fetch updated PCR
     response = (f"**Updated PCR '{name}'**\n"
@@ -218,6 +219,7 @@ async def pcr_edit(interaction: discord.Interaction, name: str, item: str = None
 async def pcr_remove(interaction: discord.Interaction, name: str, source: str = None, remove_rationale: bool = False):
 
     user_id = str(interaction.user.id)
+    user_name = interaction.user.name
     pcr = pcrs_collection.find_one({"user_id": user_id, "name": name})
 
     if not pcr:
@@ -236,7 +238,7 @@ async def pcr_remove(interaction: discord.Interaction, name: str, source: str = 
     pcrs_collection.update_one({"_id": pcr["_id"]}, {"$set": update_fields})
 
     if not pcr["private"]:
-        log_audit(user_id, name, "remove", f"Removed source/rationale: {source or 'rationale'}")
+        log_audit(user_id, user_name, name, "remove", f"Removed source/rationale: {source or 'rationale'}")
 
     pcr = pcrs_collection.find_one({"user_id": user_id, "name": name})  # Fetch updated PCR
     response = (f"**Updated PCR '{name}'**\n"
@@ -293,6 +295,7 @@ async def pcr_delete(interaction: discord.Interaction, name: str):
 @pcr.command(name="submit", description="Submit your PCR for review")
 async def pcr_submit(interaction: discord.Interaction, name: str):
     user_id = str(interaction.user.id)
+    user_name = interaction.user.name
     pcr = pcrs_collection.find_one({"user_id": user_id, "name": name})
     if not pcr:
         await interaction.response.send_message("PCR not found.")
@@ -303,7 +306,7 @@ async def pcr_submit(interaction: discord.Interaction, name: str):
     pcrs_collection.update_one({"_id": pcr["_id"]}, {"$set": update_fields})
 
     if not pcr["private"]:
-        log_audit(user_id, name, "submit", "Submit PCR for review")
+        log_audit(user_id, user_name, name, "submit", "Submit PCR for review")
 
     pcr = pcrs_collection.find_one({"user_id": user_id, "name": name})  # Fetch updated PCR
     response = (f"**Updated PCR '{name}'**\n"
@@ -377,6 +380,7 @@ async def view_pending(interaction: discord.Interaction):
 @pcr.command(name="approve", description="Approve pending PCR forms (Maincomm only).")
 async def approve(interaction: discord.Interaction, name: str):
     user_id = str(interaction.user.id)
+    user_name = interaction.user.name
     if not user_has_maincomm_role(interaction.user):
         await interaction.response.send_message("You don't have permission to approve pending PCRs.")
         return
@@ -389,7 +393,7 @@ async def approve(interaction: discord.Interaction, name: str):
     pcrs_collection.update_one({"_id": pcr["_id"]}, {"$set": update_fields})
 
     if not pcr["private"]:
-        log_audit(user_id, name, "approve", "Approved PCR")
+        log_audit(user_id, user_name, name, "approve", "Approved PCR")
 
     pcr = pcrs_collection.find_one({"name": name})  # Fetch updated PCR
     response = (f"**Updated PCR '{name}'**\n"
@@ -399,7 +403,90 @@ async def approve(interaction: discord.Interaction, name: str):
     f"**Status:** {pcr['status'] or "Draft?"}")
 
     await interaction.response.send_message(response)
+    users = pcr['user_id'] + pcr['shared_with']
+    for user in users:
+        try:
+            await user.send(f"**PCR '{name}' Approved!**\nItem: {item}\n"
+                                        f"**Sources:** {', '.join(pcr['sources']) if pcr['sources'] else 'None'}\n"
+                                        f"**Rationale:** {pcr['rationale'] or 'None'}\n"
+                                        f"**Status:** {pcr['status'] or 'Draft'}")
+        except discord.Forbidden:
+            await interaction.response.send_message("I couldn't send them a private message. Please make them enable DMs.")
+
+@pcr.command(name="pushback", description="Push back pending PCR forms (Maincomm only).")
+async def pushback(interaction: discord.Interaction, name: str, reason: str):
+    user_id = str(interaction.user.id)
+    user_name = interaction.user.name
+    if not user_has_maincomm_role(interaction.user):
+        await interaction.response.send_message("You don't have permission to pushback pending PCRs.")
+        return
+    pcr = pcrs_collection.find_one({"name": name})
+    if not pcr:
+        response = "No PCRs found."
+    update_fields = {}
+    update_fields["status"] = "Draft"
+
+    pcrs_collection.update_one({"_id": pcr["_id"]}, {"$set": update_fields})
+
+    if not pcr["private"]:
+        log_audit(user_id, user_name, name, "pushback", "Pushed Back PCR")
+
+    pcr = pcrs_collection.find_one({"name": name})  # Fetch updated PCR
+    response = (f"**Updated PCR '{name}'**\n"
+    f"Item: {pcr['item']}\n"
+    f"Sources: {', '.join(pcr['sources'])}\n"
+    f"Rationale: {pcr['rationale']}\n"
+    f"**Status:** {pcr['status'] or "Draft?"}")
+
     await interaction.response.send_message(response)
+    users = pcr['user_id'] + pcr['shared_with']
+    for user in users:
+        try:
+            await user.send(f"**PCR '{name}' Pushed back!**\nItem: {item}\n"
+                                        f"**Sources:** {', '.join(pcr['sources']) if pcr['sources'] else 'None'}\n"
+                                        f"**Rationale:** {pcr['rationale'] or 'None'}\n"
+                                        f"**Status:** {pcr['status'] or 'Draft'}\n\n"
+                                        f"**Reason:** {reason}")
+        except discord.Forbidden:
+            await interaction.response.send_message("I couldn't send them a private message. Please make them enable DMs.")
+
+@pcr.command(name="reject", description="Reject pending PCR forms (Maincomm only).")
+async def reject(interaction: discord.Interaction, name: str, reason: str):
+    user_id = str(interaction.user.id)
+    user_name = interaction.user.name
+    if not user_has_maincomm_role(interaction.user):
+        await interaction.response.send_message("You don't have permission to reject pending PCRs.")
+        return
+    pcr = pcrs_collection.find_one({"name": name})
+    if not pcr:
+        response = "No PCRs found."
+    update_fields = {}
+    update_fields["status"] = "Rejected"
+
+    pcrs_collection.update_one({"_id": pcr["_id"]}, {"$set": update_fields})
+
+    if not pcr["private"]:
+        log_audit(user_id, user_name, name, "reject", "Rejected PCR")
+
+    pcr = pcrs_collection.find_one({"name": name})  # Fetch updated PCR
+    response = (f"**Updated PCR '{name}'**\n"
+    f"Item: {pcr['item']}\n"
+    f"Sources: {', '.join(pcr['sources'])}\n"
+    f"Rationale: {pcr['rationale']}\n"
+    f"**Status:** {pcr['status'] or "Draft?"}")
+
+    await interaction.response.send_message(response)
+    users = pcr['user_id'] + pcr['shared_with']
+    for user in users:
+        try:
+            await user.send(f"**PCR '{name}' Rejected!**\nItem: {item}\n"
+                                        f"**Sources:** {', '.join(pcr['sources']) if pcr['sources'] else 'None'}\n"
+                                        f"**Rationale:** {pcr['rationale'] or 'None'}\n"
+                                        f"**Status:** {pcr['status'] or 'Draft'}\n\n"
+                                        f"**Reason:** {reason}")
+        except discord.Forbidden:
+            await interaction.response.send_message("I couldn't send them a private message. Please make them enable DMs.")
+
 
 # Discord Bot Client
 class Client(discord.Client):

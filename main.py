@@ -403,12 +403,12 @@ async def approve(interaction: discord.Interaction, name: str):
 
 # Discord Bot Client
 class Client(discord.Client):
+    ROLE_NAME = "Member"  
+    EMOJI = "✅"
+    TRACKED_MESSAGE_ID = 1342135518338613272
     def __init__(self, intents):
         super().__init__(intents=intents)
         self.tree = app_commands.CommandTree(self)
-        ROLE_NAME = "Member"  
-        EMOJI = "✅"
-        TRACKED_MESSAGE_ID = 1342100878760480819 
         self.template = """
         You are an AI-powered chatbot designed to provide 
         humor and novel ideas for people based on the given context.

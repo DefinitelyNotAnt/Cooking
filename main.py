@@ -396,14 +396,14 @@ async def approve(interaction: discord.Interaction, name: str):
         log_audit(user_id, user_name, name, "approve", "Approved PCR")
 
     pcr = pcrs_collection.find_one({"name": name})  # Fetch updated PCR
-    response = (f"**Updated PCR '{name}'**\n"
+    response = (f"**PCR '{name}' Approved**\n"
     f"Item: {pcr['item']}\n"
     f"Sources: {', '.join(pcr['sources'])}\n"
     f"Rationale: {pcr['rationale']}\n"
     f"**Status:** {pcr['status'] or "Draft?"}")
 
     await interaction.response.send_message(response)
-    users = pcr['user_id'] + pcr['shared_with']
+    users = pcr['shared_with'].append(pcr['user_id'])
     for user in users:
         try:
             await user.send(f"**PCR '{name}' Approved!**\nItem: {item}\n"
@@ -432,14 +432,14 @@ async def pushback(interaction: discord.Interaction, name: str, reason: str):
         log_audit(user_id, user_name, name, "pushback", "Pushed Back PCR")
 
     pcr = pcrs_collection.find_one({"name": name})  # Fetch updated PCR
-    response = (f"**Updated PCR '{name}'**\n"
+    response = (f"**PCR Pushed Back'{name}'**\n"
     f"Item: {pcr['item']}\n"
     f"Sources: {', '.join(pcr['sources'])}\n"
     f"Rationale: {pcr['rationale']}\n"
     f"**Status:** {pcr['status'] or "Draft?"}")
 
     await interaction.response.send_message(response)
-    users = pcr['user_id'] + pcr['shared_with']
+    users = pcr['shared_with'].append(pcr['user_id'])
     for user in users:
         try:
             await user.send(f"**PCR '{name}' Pushed back!**\nItem: {item}\n"
@@ -469,14 +469,14 @@ async def reject(interaction: discord.Interaction, name: str, reason: str):
         log_audit(user_id, user_name, name, "reject", "Rejected PCR")
 
     pcr = pcrs_collection.find_one({"name": name})  # Fetch updated PCR
-    response = (f"**Updated PCR '{name}'**\n"
+    response = (f"**PCR Rejected'{name}'**\n"
     f"Item: {pcr['item']}\n"
     f"Sources: {', '.join(pcr['sources'])}\n"
     f"Rationale: {pcr['rationale']}\n"
     f"**Status:** {pcr['status'] or "Draft?"}")
 
     await interaction.response.send_message(response)
-    users = pcr['user_id'] + pcr['shared_with']
+    users = pcr['shared_with'].append(pcr['user_id'])
     for user in users:
         try:
             await user.send(f"**PCR '{name}' Rejected!**\nItem: {item}\n"

@@ -534,23 +534,32 @@ def extract_details(url: str):
     except Exception as e:
         print(f"Error extracting details from {url}: {e}")
         return "N/A", "N/A"
+VALID_SHOPPING_DOMAINS_SG = [
+    "shopee.sg", "lazada.sg", "qoo10.sg", "amazon.sg", "carousell.sg", "fairprice.com.sg",
+    "giant.sg", "coldstorage.com.sg", "harveynorman.com.sg", "bestdenki.com.sg", "apple.com/sg"
+]
+
+def is_valid_singapore_seller(url):
+    """Check if the URL belongs to a Singapore-based shopping website."""
+    return any(domain in url for domain in VALID_SHOPPING_DOMAINS_SG)
 
 async def search_item(query: str):
-    """Search for an item using DuckDuckGo."""
+    """Search for an item using DuckDuckGo, filtering for valid Singapore sellers."""
     results_list = []
-    ddgs = DDGS()  # No async context manager needed
-    results = ddgs.text(query, max_results=10)  # Directly call text()
+    ddgs = DDGS()
+    results = ddgs.text(f"buy {query} Singapore OR ship to Singapore", max_results=20)  
 
     for r in results:
         url = r.get('href', '')
-        cost, brand = extract_details(url) 
-        results_list.append({
-            'name': r.get('title', 'No title'),
-            'cost': cost,
-            'brand': brand,
-            'source': url
-        })
-    
+        if is_valid_singapore_seller(url):  # Filter for SG-based sellers only
+            cost, brand = extract_details(url)
+            results_list.append({
+                'name': r.get('title', 'No title'),
+                'cost': cost,
+                'brand': brand,
+                'source': url
+            })
+
     return results_list
 
 @source_group.command(name="search", description="Search for item sources")

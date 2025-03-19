@@ -21,6 +21,22 @@ audit_logs_collection = db["audit_logs"]
 
 AUDIT_ROLES = "Maincomm"
 PCR_ROLES = "Subcomm 25/26"
+COOKING_ROLE = "Cooking"
+
+rishan_tree = app_commands.CommandTree()
+
+@rishan_tree.command(name="cook", description="Start cooking!")
+@rishan_tree.checks.has_role(COOKING_ROLE)  # Restricts to users with "Cooking" role
+async def cook_command(interaction: discord.Interaction):
+    await interaction.response.send_message("🍳 You have started cooking!", ephemeral=True)
+
+# Error handling for missing role
+@cook_command.error
+async def cook_command_error(interaction: discord.Interaction, error):
+    if isinstance(error, app_commands.MissingRole):
+        await interaction.response.send_message("❌ You need the 'Cooking' role to use this command.", ephemeral=True)
+
+
 
 def user_has_maincomm_role(user) -> bool:
     """Check if the user has Maincomm role."""
@@ -46,7 +62,6 @@ def user_can_access_pcr(user, pcr_name):
 # PCR Command Group                         #
 #############################################
 pcr = app_commands.Group(name="pcr", description="Manage PCR tasks")
-
 @pcr.command(name="create", description="Create a new PCR")
 async def pcr_create(interaction: discord.Interaction, name: str, item: str, private: bool = False):
     user_id = str(interaction.user.id)

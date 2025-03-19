@@ -50,7 +50,7 @@ class Client(discord.Client):
         if message.author == self.user:
             return
         try:
-            if any(role.name != "Cooking" for role in message.author.roles):
+            if all(role.name != "Cooking" for role in message.author.roles):
                 return
             # If bot is mentioned, use the Request function from rishan.py
             if self.user in message.mentions:

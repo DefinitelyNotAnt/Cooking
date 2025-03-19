@@ -23,19 +23,6 @@ AUDIT_ROLES = "Maincomm"
 PCR_ROLES = "Subcomm 25/26"
 COOKING_ROLE = "Cooking"
 
-rishan_tree = app_commands.Group(name="cook", description="Never stop cooking")
-
-@rishan_tree.command(name="cook", description="Start cooking!")
-@rishan_tree.checks.has_role(COOKING_ROLE)  # Restricts to users with "Cooking" role
-async def cook_command(interaction: discord.Interaction):
-    await interaction.response.send_message("🍳 You have started cooking!", ephemeral=True)
-
-# Error handling for missing role
-@cook_command.error
-async def cook_command_error(interaction: discord.Interaction, error):
-    if isinstance(error, app_commands.MissingRole):
-        await interaction.response.send_message("❌ You need the 'Cooking' role to use this command.", ephemeral=True)
-
 
 
 def user_has_maincomm_role(user) -> bool:
@@ -57,6 +44,19 @@ def user_can_access_pcr(user, pcr_name):
     user_id = str(user.id)
     pcr = pcrs_collection.find_one({"name": pcr_name, "$or": [{"user_id": user_id}, {"shared_with": user_id}]})
     return pcr is not None
+
+#############################################
+# Cooking Group                             #
+#############################################
+
+rishan_tree = app_commands.Group(name="cook", description="Never stop cooking")
+
+@rishan_tree.command(name="cook", description="Start cooking!")
+async def cook_command(interaction: discord.Interaction):
+    if not user_has_maincomm_role(interaction.user):
+        await interaction.response.send_message("You shall not cook.")
+        return
+    await interaction.response.send_message("🍳 You have started cooking!", ephemeral=True)
 
 #############################################
 # PCR Command Group                         #

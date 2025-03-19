@@ -50,15 +50,17 @@ class Client(discord.Client):
         if message.author == self.user:
             return
         try:
+            if any(role.name != "Cooking" for role in message.author.roles):
+                return
             # If bot is mentioned, use the Request function from rishan.py
             if self.user in message.mentions:
                 response = Request(message.content, self.template)
             # If message is exactly "/cook", check for permission and call Cooking
-            elif message.content == "/cook":
+            elif "i summon the word of r" in message.content.lower():
                 if any(role.name == "Cooking" for role in message.author.roles):
                     response = Cooking(self.template)
                 else:
-                    response = "You don't have permission to use this command."
+                    response = "How did you even get here???"
             else:
                 return
 

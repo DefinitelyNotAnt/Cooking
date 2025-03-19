@@ -5,6 +5,7 @@ from discord import app_commands
 from discord.utils import get
 from rishan import Request, Cooking
 from pcr import pcr, source_group
+import random
 
 # Load Discord token from environment variables
 load_dotenv()
@@ -103,6 +104,29 @@ class Client(discord.Client):
             await member.remove_roles(role)
             print(f"Removed {role.name} from {member.display_name}")
 
+    async def on_member_join(self, member):
+            """Sends a custom welcome message with a random image when a new user joins."""
+            try:
+                # Path to the media folder
+                media_folder = "./joinmedia"
+                # List all image files in the folder
+                images = [f for f in os.listdir(media_folder) if f.endswith(('.png', '.jpg', '.jpeg', '.gif'))]
+                if not images:
+                    print("No images found in the media folder.")
+                    return
+
+                # Select a random image
+                random_image = os.path.join(media_folder, random.choice(images))
+
+                # Send the welcome message
+                channel = member.guild.system_channel  # You can specify another channel if preferred
+                if channel:
+                    await channel.send(
+                        f"Welcome to the Jinsei server, {member.mention}! We're glad to have you here! 🎉",
+                        file=discord.File(random_image)
+                    )
+            except Exception as e:
+                print(f"Error in on_member_join: {e}")
 # Initialize bot with the required intents
 intents = discord.Intents.default()
 intents.members = True

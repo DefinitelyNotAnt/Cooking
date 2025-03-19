@@ -464,11 +464,12 @@ def is_valid_singapore_seller(url):
     """Check if the URL belongs to a Singapore-based shopping website."""
     return any(domain in url for domain in VALID_SHOPPING_DOMAINS_SG)
 
+
 async def search_item(query: str):
-    """Search for an item using DuckDuckGo, filtering for valid Singapore sellers."""
     results_list = []
     ddgs = DDGS()
-    results = ddgs.text(f"buy {query} Singapore OR ship to Singapore", max_results=20)
+    results = list(ddgs.text(f"buy {query} Singapore", max_results=20))
+    print(f"Raw search results: {results}")  # Debugging
     for r in results:
         url = r.get('href', '')
         if is_valid_singapore_seller(url):

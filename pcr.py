@@ -23,7 +23,7 @@ AUDIT_ROLES = "Maincomm"
 PCR_ROLES = "Subcomm 25/26"
 COOKING_ROLE = "Cooking"
 
-rishan_tree = app_commands.CommandTree()
+rishan_tree = app_commands.Group(name="cook", description="Never stop cooking")
 
 @rishan_tree.command(name="cook", description="Start cooking!")
 @rishan_tree.checks.has_role(COOKING_ROLE)  # Restricts to users with "Cooking" role

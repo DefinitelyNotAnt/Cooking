@@ -7,4 +7,3 @@ pymongo[srv]
 requests
 beautifulsoup4
 duckduckgo_search
-aiohttp

@@ -65,7 +65,7 @@ class Client(discord.Client):
                     random_image = os.path.join(media_folder, random.choice(images))
 
                     # Send the welcome message
-                    channel = message.guild.system_channel
+                    channel = message.channel
                     if channel:
                         await channel.send(
                             f"Welcome!!\n"+
@@ -148,16 +148,16 @@ class Client(discord.Client):
                 if channel:
                     try:
                         await channel.send(
-                            f"へい！"+
-                            f"Nice to meet you, {member.mention}, Welcome to JCC Jinsei!"+
+                            f"へい！\n"+
+                            f"Nice to meet you, {member.mention}, Welcome to JCC Jinsei!\n"+
                             f"Enjoy your stay and don't forget to read <#1338036966159290458> to gain access to the rest of the server!",
                             file=discord.File(random_image)
                         )
                     except:
                         await channel.send(
-                            f"へい！"+
-                            f"Nice to meet you, {member.mention}, Welcome to JCC Jinsei!"+
-                            f"Enjoy your stay and don't forget to read #rules to gain access to the rest of the server!",
+                            f"へい！\n"+
+                            f"Nice to meet you, {member.mention}, Welcome to JCC Jinsei!\n"+
+                            f"Enjoy your stay and don't forget to read #rules to gain access to the rest of the server!\n",
                             file=discord.File(random_image)
                         )
             except Exception as e:

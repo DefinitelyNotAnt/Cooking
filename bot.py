@@ -69,12 +69,12 @@ class Client(discord.Client):
                     if channel:
                         await channel.send(
                             f"Welcome!!\n"+
-                            f"For you, {message.author}, here's what you can do here.\n"+
+                            f"For you, here's what you can do here.\n"+
                             f"You can view <#1338038250685726820> to find out the various channels, or you can first introduce yourself at <#1338021134612041739>!",
                             file=discord.File(random_image)
                         )
                 except Exception as e:
-                    print(f"Error in on_member_join: {e}")
+                    print(f"Error in !welcome: {e}")
                 return
             if all(role.name != "Cooking" for role in message.author.roles):
                 return

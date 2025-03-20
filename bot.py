@@ -122,7 +122,9 @@ class Client(discord.Client):
                 channel = member.guild.system_channel  # You can specify another channel if preferred
                 if channel:
                     await channel.send(
-                        f"Welcome to the Jinsei server, {member.mention}! We're glad to have you here! 🎉",
+                        f"へい！"+
+                        f"Nice to meet you, {member.mention}, Welcome to JCC Jinsei!"+
+                        f"Enjoy your stay and don't forget to read {member.guild.channels.cache.get('1338036966159290458').toString()} to gain access to the rest of the server",
                         file=discord.File(random_image)
                     )
             except Exception as e:

@@ -150,7 +150,7 @@ class Client(discord.Client):
                         await channel.send(
                             f"へい！"+
                             f"Nice to meet you, {member.mention}, Welcome to JCC Jinsei!"+
-                            f"Enjoy your stay and don't forget to read <#'1338036966159290458'> to gain access to the rest of the server!",
+                            f"Enjoy your stay and don't forget to read <#1338036966159290458> to gain access to the rest of the server!",
                             file=discord.File(random_image)
                         )
                     except:

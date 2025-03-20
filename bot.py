@@ -51,6 +51,31 @@ class Client(discord.Client):
         if message.author == self.user:
             return
         try:
+            if "!welcome" == message.content:
+                try:
+                    # Path to the media folder
+                    media_folder = "./joinmedia"
+                    # List all image files in the folder
+                    images = [f for f in os.listdir(media_folder) if f.endswith(('.png', '.jpg', '.jpeg', '.gif'))]
+                    if not images:
+                        print("No images found in the media folder.")
+                        return
+
+                    # Select a random image
+                    random_image = os.path.join(media_folder, random.choice(images))
+
+                    # Send the welcome message
+                    channel = message.guild.system_channel
+                    if channel:
+                        await channel.send(
+                            f"welcome!!"+
+                            f"For you, {message.author}, here's what you can do here."+
+                            f"You can view #server-map to find out the various channels, or you can first introduce yourself at #introductions!",
+                            file=discord.File(random_image)
+                        )
+                except Exception as e:
+                    print(f"Error in on_member_join: {e}")
+                return
             if all(role.name != "Cooking" for role in message.author.roles):
                 return
             # If bot is mentioned, use the Request function from rishan.py
@@ -121,12 +146,20 @@ class Client(discord.Client):
                 # Send the welcome message
                 channel = member.guild.system_channel  # You can specify another channel if preferred
                 if channel:
-                    await channel.send(
-                        f"へい！"+
-                        f"Nice to meet you, {member.mention}, Welcome to JCC Jinsei!"+
-                        f"Enjoy your stay and don't forget to read {member.guild.channels.cache.get('1338036966159290458').toString()} to gain access to the rest of the server",
-                        file=discord.File(random_image)
-                    )
+                    try:
+                        await channel.send(
+                            f"へい！"+
+                            f"Nice to meet you, {member.mention}, Welcome to JCC Jinsei!"+
+                            f"Enjoy your stay and don't forget to read <#'1338036966159290458'> to gain access to the rest of the server!",
+                            file=discord.File(random_image)
+                        )
+                    except:
+                        await channel.send(
+                            f"へい！"+
+                            f"Nice to meet you, {member.mention}, Welcome to JCC Jinsei!"+
+                            f"Enjoy your stay and don't forget to read #rules to gain access to the rest of the server!",
+                            file=discord.File(random_image)
+                        )
             except Exception as e:
                 print(f"Error in on_member_join: {e}")
 # Initialize bot with the required intents

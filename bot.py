@@ -70,7 +70,7 @@ class Client(discord.Client):
                         await channel.send(
                             f"Welcome!!\n"+
                             f"For you, {message.author}, here's what you can do here.\n"+
-                            f"You can view #server-map to find out the various channels, or you can first introduce yourself at #introductions!",
+                            f"You can view <#1338038250685726820> to find out the various channels, or you can first introduce yourself at <#1338021134612041739>!",
                             file=discord.File(random_image)
                         )
                 except Exception as e:

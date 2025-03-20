@@ -68,8 +68,8 @@ class Client(discord.Client):
                     channel = message.guild.system_channel
                     if channel:
                         await channel.send(
-                            f"welcome!!"+
-                            f"For you, {message.author}, here's what you can do here."+
+                            f"Welcome!!\n"+
+                            f"For you, {message.author}, here's what you can do here.\n"+
                             f"You can view #server-map to find out the various channels, or you can first introduce yourself at #introductions!",
                             file=discord.File(random_image)
                         )

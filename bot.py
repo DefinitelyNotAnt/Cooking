@@ -15,7 +15,8 @@ class Client(discord.Client):
     ROLE_NAME = "Member"  
     EMOJI = "✅"
     TRACKED_MESSAGE_ID = 1342135518338613272
-
+    ADMIN_CHANNEL_ID = 1359891372831670554
+    WORD_FILTER = ["Project Sekai", "Fuck", "Rishan"]
     def __init__(self, intents):
         super().__init__(intents=intents)
         self.tree = app_commands.CommandTree(self)
@@ -50,6 +51,30 @@ class Client(discord.Client):
     async def on_message(self, message):
         if message.author == self.user:
             return
+        if any(word.lower() in message.content.lower() for word in self.WORD_FILTER):
+            try:
+                await message.delete()
+                try:
+                    await message.author.send(
+                        f"⚠️ Your message in **#{message.channel}** was removed because it contained a restricted word. Please follow the dictatorship's rules."
+                    )
+                except discord.Forbidden:
+                    print(f"Could not DM user {message.author}.")
+
+                # Log the incident in the admin log channel
+                admin_channel = self.get_channel(ADMIN_CHANNEL_ID)
+                if admin_channel:
+                    embed = discord.Embed(
+                        title="🚫 Word Filter Triggered",
+                        description=f"**User:** {message.author} (`{message.author.id}`)\n"
+                                    f"**Channel:** <#{message.channel.id}>\n"
+                                    f"**Content:** `{message.content}`",
+                        color=discord.Color.red()
+                    )
+                    await admin_channel.send(embed=embed)
+            except Exception as e:
+                print(f"Error filtering message: {e}")
+            return 
         try:
             if "!welcome" == message.content:
                 try:

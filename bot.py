@@ -15,7 +15,6 @@ class Client(discord.Client):
     ROLE_NAME = "Member"  
     EMOJI = "✅"
     TRACKED_MESSAGE_ID = 1342135518338613272
-    ADMIN_CHANNEL_ID = 1359891372831670554
     WORD_FILTER = ["Project Sekai", "Fuck", "Rishan"]
     def __init__(self, intents):
         super().__init__(intents=intents)
@@ -52,6 +51,7 @@ class Client(discord.Client):
         if message.author == self.user:
             return
         if any(word.lower() in message.content.lower() for word in self.WORD_FILTER):
+            ADMIN_CHANNEL_ID = 1359891372831670554
             try:
                 await message.delete()
                 try:

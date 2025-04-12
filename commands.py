@@ -78,7 +78,6 @@ async def gacha(interaction: discord.Interaction, pulls: int = 1):
         pages = [results[i:i+10] for i in range(0, len(results), 10)]
         image_pages = [images[i:i+10] for i in range(0, len(images), 10)]
 
-        # Full pull summary
         def summarize_all(results_full):
             summary = {}
             for result in results_full:
@@ -87,10 +86,10 @@ async def gacha(interaction: discord.Interaction, pulls: int = 1):
 
         def get_embed_and_file(page_index):
             final_image = compose_pulls_image(image_pages[page_index])
-            overall_highest = min(results, key=lambda r: LOOT_TABLE[r])  # Full result rarity
+            overall_highest = min(results, key=lambda r: LOOT_TABLE[r])
             color = RARITY_COLORS[overall_highest]
             embed = discord.Embed(
-                title=f"🎰 Gacha Result (Page {page_index+1}/{len(pages)})",
+                title=f"🌰 Gacha Result (Page {page_index+1}/{len(pages)})",
                 description=summarize_all(results),
                 color=color
             )
@@ -106,17 +105,17 @@ async def gacha(interaction: discord.Interaction, pulls: int = 1):
         pages, image_pages, get_embed_and_file = await send_result(results, images)
         current_page = 0
 
+        if "Rishan" in results:
+            await interaction.followup.send(
+                f"🟣🔥 **LEGENDARY DROP!!!** 🔥🟣\n{interaction.user.mention} just pulled **Rishan**!\nEveryone bow 🙇‍♂️"
+            )
+
         embed, file = get_embed_and_file(current_page)
         message = await interaction.followup.send(embed=embed, file=file)
 
         await message.add_reaction("⬅️")
         await message.add_reaction("🔁")
         await message.add_reaction("➡️")
-
-        if "Rishan" in results:
-            await interaction.followup.send(
-                f"🟣🔥 **LEGENDARY DROP!!!** 🔥🟣\n{interaction.user.mention} just pulled **Rishan**!\nEveryone bow 🙇‍♂️"
-            )
 
         def check(reaction, user):
             return (

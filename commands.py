@@ -137,7 +137,7 @@ async def gacha(interaction: discord.Interaction, pulls: int = 1):
             )
 
                 results, images = await do_pull()
-                embed, file = await send_result(results, images)
+                embed, file, _, _ = await send_result(results, images)
                 await message.edit(embed=embed, attachments=[file])
                 await message.clear_reactions()
                 await message.add_reaction("🔁")

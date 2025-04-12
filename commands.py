@@ -74,70 +74,86 @@ async def gacha(interaction: discord.Interaction, pulls: int = 1):
         images = [random.choice(IMAGE_MAP[result]) for result in results]
         return results, images
 
-    def get_highest_rarity(results):
-        return min(results, key=lambda r: LOOT_TABLE[r])
-
     async def send_result(results, images):
         pages = [results[i:i+10] for i in range(0, len(results), 10)]
         image_pages = [images[i:i+10] for i in range(0, len(images), 10)]
-        current_page = 0
 
-        def summarize_page(results_page):
+        # Full pull summary
+        def summarize_all(results_full):
             summary = {}
-            for result in results_page:
+            for result in results_full:
                 summary[result] = summary.get(result, 0) + 1
             return "\n".join(f"{item} ×{count}" for item, count in summary.items())
 
-        def get_embed_and_file(page):
-            final_image = compose_pulls_image(image_pages[page])
-            highest_rarity = min(pages[page], key=lambda r: LOOT_TABLE[r])
-            color = RARITY_COLORS[highest_rarity]
+        def get_embed_and_file(page_index):
+            final_image = compose_pulls_image(image_pages[page_index])
+            overall_highest = min(results, key=lambda r: LOOT_TABLE[r])  # Full result rarity
+            color = RARITY_COLORS[overall_highest]
             embed = discord.Embed(
-                title=f"🎰 Gacha Result (Page {page+1}/{len(pages)})",
-                description=summarize_page(pages[page]),
+                title=f"🎰 Gacha Result (Page {page_index+1}/{len(pages)})",
+                description=summarize_all(results),
                 color=color
             )
             file = discord.File(final_image, filename="result.png")
             embed.set_image(url="attachment://result.png")
             return embed, file
 
+        return pages, image_pages, get_embed_and_file
+
+    try:
+        await interaction.response.defer()
+        results, images = await do_pull()
+        pages, image_pages, get_embed_and_file = await send_result(results, images)
+        current_page = 0
+
         embed, file = get_embed_and_file(current_page)
+        message = await interaction.followup.send(embed=embed, file=file)
+
+        await message.add_reaction("⬅️")
+        await message.add_reaction("🔁")
+        await message.add_reaction("➡️")
 
         if "Rishan" in results:
             await interaction.followup.send(
                 f"🟣🔥 **LEGENDARY DROP!!!** 🔥🟣\n{interaction.user.mention} just pulled **Rishan**!\nEveryone bow 🙇‍♂️"
             )
 
-        return embed, file, len(pages), get_embed_and_file
-
-    try:
-        await interaction.response.defer()
-        results, images = await do_pull()
-        embed, file, total_pages, get_embed_and_file = await send_result(results, images)
-        message = await interaction.followup.send(embed=embed, file=file)
-        await message.add_reaction("🔁")
-
         def check(reaction, user):
             return (
                 user == interaction.user and
-                str(reaction.emoji) == "🔁" and
+                str(reaction.emoji) in ["⬅️", "➡️", "🔁"] and
                 reaction.message.id == message.id
             )
 
         while True:
             try:
-                reaction, user = await interaction.client.wait_for(
-                    "reaction_add",
-                    timeout=60.0,
-                    check=check
-                )
-                results, images = await do_pull()
-                embed, file, *_ = await send_result(results, images)
+                reaction, user = await interaction.client.wait_for("reaction_add", timeout=60.0, check=check)
+                emoji = str(reaction.emoji)
+
+                if emoji == "⬅️" and current_page > 0:
+                    current_page -= 1
+                elif emoji == "➡️" and current_page < len(pages) - 1:
+                    current_page += 1
+                elif emoji == "🔁":
+                    results, images = await do_pull()
+                    pages, image_pages, get_embed_and_file = await send_result(results, images)
+                    current_page = 0
+                    if "Rishan" in results:
+                        await interaction.followup.send(
+                            f"🟣🔥 **LEGENDARY DROP!!!** 🔥🟣\n{interaction.user.mention} just pulled **Rishan**!\nEveryone bow 🙇‍♂️"
+                        )
+
+                embed, file = get_embed_and_file(current_page)
                 await message.edit(embed=embed, attachments=[file])
                 await message.clear_reactions()
+                await message.add_reaction("⬅️")
                 await message.add_reaction("🔁")
-            except Exception:
+                await message.add_reaction("➡️")
+
+            except Exception as e:
+                print(f"Timeout or error in pagination: {e}")
                 break
+
     except Exception as e:
         await interaction.followup.send(
             "Your gamble results were so bad that it crashed.\nNever try again."

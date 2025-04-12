@@ -2,6 +2,6 @@ langchain
 langchain-groq
 python-dotenv
 langchain-community
-discord.py
+discord
 requests
 pillow

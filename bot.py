@@ -1,10 +1,18 @@
+print("Importing dotenv")
 from dotenv import load_dotenv
+print("Importing os")
 import os
+print("Importing discord")
 import discord
+print("Importing app_commands")
 from discord import app_commands
+print("Importing utils")
 from discord.utils import get
+print("Importing gacha")
 from commands import gacha
+print("Importing request n cooking")
 from rishan import Request, Cooking
+print("Importing random")
 import random
 
 # Load Discord token from environment variables

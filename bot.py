@@ -4,7 +4,7 @@ import discord
 from discord import app_commands
 from discord.utils import get
 from rishan import Request, Cooking
-from pcr import pcr, source_group
+from pcr import gacha
 import random
 
 # Load Discord token from environment variables

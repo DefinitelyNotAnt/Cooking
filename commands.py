@@ -67,7 +67,8 @@ gacha_group = app_commands.Group(name="gacha", description="Should you gacha")
 @gacha_group.command(name="gacha", description="Let's go gambling")
 async def gacha(interaction: discord.Interaction, pulls: int = 1):
     print("Pulls: " + str(pulls))
-
+    if pulls>30:
+        pulls = 30
     async def do_pull():
         results = [roll_loot() for _ in range(pulls)]
         images = [random.choice(IMAGE_MAP[result]) for result in results]

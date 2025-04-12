@@ -22,11 +22,11 @@ RESULT_IMAGE_MAP = {
     "Rishan": ["men"]
 }
 RARITY_COLORS = {
-    "Cuck": 0x808080,     # Grey
-    "Mascot": 0x00FFFF,   # Cyan
-    "Kanata": 0xFFD700,   # Gold
-    "JCC": 0xFF69B4,      # Pink
-    "Rishan": 0x800080    # Purple
+    "Cuck": 0x808080,
+    "Mascot": 0x00FFFF,
+    "Kanata": 0xFFD700,
+    "JCC": 0xFF69B4,
+    "Rishan": 0x800080
 }
 
 def load_images_by_category():
@@ -67,14 +67,14 @@ gacha_group = app_commands.Group(name="gacha", description="Should you gacha")
 
 @gacha_group.command(name="gacha", description="Let's go gambling")
 async def gacha(interaction: discord.Interaction, pulls: int = 1):
-    print("Pulls: "+str(pulls))
+    print("Pulls: " + str(pulls))
+
     async def do_pull():
         results = [roll_loot() for _ in range(pulls)]
         images = [random.choice(IMAGE_MAP[result]) for result in results]
         return results, images
 
     def get_highest_rarity(results):
-        # Sort by lowest chance (i.e., highest rarity)
         return min(results, key=lambda r: LOOT_TABLE[r])
 
     async def send_result(results, images):
@@ -113,7 +113,7 @@ async def gacha(interaction: discord.Interaction, pulls: int = 1):
     try:
         await interaction.response.defer()
         results, images = await do_pull()
-        embed, file = await send_result(results, images)
+        embed, file, total_pages, get_embed_and_file = await send_result(results, images)
         message = await interaction.followup.send(embed=embed, file=file)
         await message.add_reaction("🔁")
 
@@ -127,22 +127,17 @@ async def gacha(interaction: discord.Interaction, pulls: int = 1):
         while True:
             try:
                 reaction, user = await interaction.client.wait_for(
-                "reaction_add",
-                timeout=60.0,
-                check=lambda r, u: (
-                    u == interaction.user and
-                    str(r.emoji) == "🔁" and
-                    r.message.id == message.id
+                    "reaction_add",
+                    timeout=60.0,
+                    check=check
                 )
-            )
-
                 results, images = await do_pull()
-                embed, file, _, _ = await send_result(results, images)
+                embed, file, *_ = await send_result(results, images)
                 await message.edit(embed=embed, attachments=[file])
                 await message.clear_reactions()
                 await message.add_reaction("🔁")
             except Exception:
-                break  # Timeout or error = stop listening
+                break
     except Exception as e:
         await interaction.followup.send(
             "Your gamble results were so bad that it crashed.\nNever try again."
@@ -153,9 +148,7 @@ async def gacha(interaction: discord.Interaction, pulls: int = 1):
 async def coinflip(interaction: discord.Interaction):
     await interaction.response.defer()
     result = random.choice(["Heads", "Tails"])
-    await interaction.followup.send(
-        content=f"🎲 You rolled: {result}"
-    )
+    await interaction.followup.send(content=f"🎲 You rolled: {result}")
     return
 
 #############################################
@@ -164,7 +157,7 @@ async def coinflip(interaction: discord.Interaction):
 
 custom_group = app_commands.Group(name="custom", description="For the bot to do stuff")
 
-@custom_group.command(name="welcome",description="Welcome a member")
+@custom_group.command(name="welcome", description="Welcome a member")
 async def welcome(interaction: discord.Interaction, user: discord.User = None):
     try:
         media_folder = "./joinmedia"
@@ -175,7 +168,6 @@ async def welcome(interaction: discord.Interaction, user: discord.User = None):
             return
 
         random_image = os.path.join(media_folder, random.choice(images))
-
         mention = user.mention if user else interaction.user.mention
 
         await interaction.response.send_message(

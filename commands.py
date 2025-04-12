@@ -21,6 +21,14 @@ RESULT_IMAGE_MAP = {
     "JCC": ["jcc"],
     "Rishan": ["men"]
 }
+RARITY_COLORS = {
+    "Cuck": 0x808080,     # Grey
+    "Mascot": 0x00FFFF,   # Cyan
+    "Kanata": 0xFFD700,   # Gold
+    "JCC": 0xFF69B4,      # Pink
+    "Rishan": 0x800080    # Purple
+}
+
 def load_images_by_category():
     image_map = {key: [] for key in RESULT_IMAGE_MAP}
     for filename in os.listdir(MEDIA_FOLDER):
@@ -56,30 +64,59 @@ def roll_loot():
     return random.choices(items, weights=weights, k=1)[0]
 
 gacha_group = app_commands.Group(name="gacha", description="Should you gacha")
+
 @gacha_group.command(name="gacha", description="Let's go gambling")
 async def gacha(interaction: discord.Interaction, tenpull: bool = False):
-    try:
-        await interaction.response.defer()
-
+    async def do_pull():
         pulls = 10 if tenpull else 1
         results = [roll_loot() for _ in range(pulls)]
         images = [random.choice(IMAGE_MAP[result]) for result in results]
+        return results, images
 
+    async def send_result(results, images):
         if tenpull:
             final_image = compose_tenpull_image(images)
             result_text = "\n".join(f"{i+1}. {results[i]}" for i in range(10))
+            color = RARITY_COLORS[max(results, key=lambda r: LOOT_TABLE[r])]
         else:
             final_image = images[0]
             result_text = f"You got: **{results[0]}**"
+            color = RARITY_COLORS[results[0]]
 
-        await interaction.followup.send(
-            content=f"🎲 Your gamble results:\n{result_text}",
-            file=discord.File(final_image)
+        embed = discord.Embed(
+            title="🎰 Gacha Result",
+            description=result_text,
+            color=color
         )
+        file = discord.File(final_image, filename="result.png")
+        embed.set_image(url="attachment://result.png")
+        return embed, file
 
+    try:
+        await interaction.response.defer()
+        results, images = await do_pull()
+        embed, file = await send_result(results, images)
+        message = await interaction.followup.send(embed=embed, file=file)
+        await message.add_reaction("🔁")
+
+        def check(reaction, user):
+            return (
+                user == interaction.user and
+                str(reaction.emoji) == "🔁" and
+                reaction.message.id == message.id
+            )
+
+        while True:
+            try:
+                reaction, user = await interaction.client.wait_for("reaction_add", timeout=60.0, check=check)
+                results, images = await do_pull()
+                embed, file = await send_result(results, images)
+                await message.edit(embed=embed, attachments=[file])
+            except Exception:
+                break  # Exit on timeout or error
     except Exception as e:
         await interaction.followup.send(
-            f"Your gamble results were so bad that it crashed.\nNever try again."
+            "Your gamble results were so bad that it crashed.\nNever try again."
         )
         print(f"Error in gacha: {e}")
 

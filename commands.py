@@ -105,10 +105,10 @@ async def gacha(interaction: discord.Interaction, pulls: int = 1):
 
         if "Rishan" in results:
             await interaction.followup.send(
-                f"🟣🔥 **LEGENDARY DROP!!!**  🗣️🔥\n{interaction.user.mention} just pulled **Rishan**!\nEveryone bow 🙇‍♂️"
+                f"🟣🔥 **LEGENDARY DROP!!!** 🔥🟣\n{interaction.user.mention} just pulled **Rishan**!\nEveryone bow 🙇‍♂️"
             )
 
-        return embed, file, len(pages), lambda page: get_embed_and_file(page)
+        return embed, file, len(pages), get_embed_and_file
 
     try:
         await interaction.response.defer()
@@ -126,7 +126,16 @@ async def gacha(interaction: discord.Interaction, pulls: int = 1):
 
         while True:
             try:
-                reaction, user = await interaction.client.wait_for("reaction_add", timeout=60.0, check=check)
+                reaction, user = await interaction.client.wait_for(
+                "reaction_add",
+                timeout=60.0,
+                check=lambda r, u: (
+                    u == interaction.user and
+                    str(r.emoji) == "🔁" and
+                    r.message.id == message.id
+                )
+            )
+
                 results, images = await do_pull()
                 embed, file = await send_result(results, images)
                 await message.edit(embed=embed, attachments=[file])

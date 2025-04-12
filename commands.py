@@ -73,15 +73,20 @@ async def gacha(interaction: discord.Interaction, tenpull: bool = False):
         images = [random.choice(IMAGE_MAP[result]) for result in results]
         return results, images
 
+    def get_highest_rarity(results):
+        # Sort by lowest chance (i.e., highest rarity)
+        return min(results, key=lambda r: LOOT_TABLE[r])
+
     async def send_result(results, images):
         if tenpull:
             final_image = compose_tenpull_image(images)
             result_text = "\n".join(f"{i+1}. {results[i]}" for i in range(10))
-            color = RARITY_COLORS[max(results, key=lambda r: LOOT_TABLE[r])]
         else:
             final_image = images[0]
             result_text = f"You got: **{results[0]}**"
-            color = RARITY_COLORS[results[0]]
+
+        highest_rarity = get_highest_rarity(results)
+        color = RARITY_COLORS[highest_rarity]
 
         embed = discord.Embed(
             title="🎰 Gacha Result",
@@ -90,6 +95,13 @@ async def gacha(interaction: discord.Interaction, tenpull: bool = False):
         )
         file = discord.File(final_image, filename="result.png")
         embed.set_image(url="attachment://result.png")
+
+        # 🔥 Legendary drop message
+        if "Rishan" in results:
+            await interaction.followup.send(
+                f"🟣🔥 **LEGENDARY DROP!!!** 🔥🟣\n{interaction.user.mention} just pulled **Rishan**!\nEveryone bow 🙇‍♂️"
+            )
+
         return embed, file
 
     try:
@@ -112,8 +124,10 @@ async def gacha(interaction: discord.Interaction, tenpull: bool = False):
                 results, images = await do_pull()
                 embed, file = await send_result(results, images)
                 await message.edit(embed=embed, attachments=[file])
+                await message.clear_reactions()
+                await message.add_reaction("🔁")
             except Exception:
-                break  # Exit on timeout or error
+                break  # Timeout or error = stop listening
     except Exception as e:
         await interaction.followup.send(
             "Your gamble results were so bad that it crashed.\nNever try again."

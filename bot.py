@@ -54,7 +54,7 @@ class Client(discord.Client):
 
     async def setup_hook(self):
         # Add slash command groups from commands
-        self.tree.add_command(gacha)
+        self.tree.add_command(gacha_group)
 
     async def on_message(self, message):
         if message.author == self.user:

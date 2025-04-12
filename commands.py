@@ -2,6 +2,7 @@ import os
 import discord
 from discord import app_commands
 from PIL import Image
+import random
 
 AUDIT_ROLES = "Maincomm"
 COOKING_ROLE = "Cooking"

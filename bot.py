@@ -23,9 +23,10 @@ print("Loaded discordkey")
 
 class Client(discord.Client):
     ROLE_NAME = "Member"  
+    COOKING_ROLE = "Cooking"
     EMOJI = "✅"
     TRACKED_MESSAGE_ID = 1342135518338613272
-    WORD_FILTER = ["Project Sekai", "Fuck", "Rishan"]
+    WORD_FILTER = ["Project Sekai", "Fuck", "Rishan","Nigger","Nigga","onlyfans","cock","penis","dick","vagina","genshin","faggot","fellat","porn","rimjob"]
     def __init__(self, intents):
         super().__init__(intents=intents)
         self.tree = app_commands.CommandTree(self)
@@ -60,6 +61,12 @@ class Client(discord.Client):
         if message.author == self.user:
             return
         if any(word.lower() in message.content.lower() for word in self.WORD_FILTER):
+            if any(role.name == self.COOKING_ROLE for role in message.author.roles):
+                try:
+                    await message.add_reaction("🔥")
+                except Exception as e:
+                    print(f"Couldn't add reaction: {e}")
+                return
             ADMIN_CHANNEL_ID = 1359891372831670554
             try:
                 await message.delete()

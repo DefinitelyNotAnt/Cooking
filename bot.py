@@ -9,7 +9,7 @@ from discord import app_commands
 print("Importing utils")
 from discord.utils import get
 print("Importing gacha")
-from commands import gacha
+from commands import gacha_group
 print("Importing request n cooking")
 from rishan import Request, Cooking
 print("Importing random")

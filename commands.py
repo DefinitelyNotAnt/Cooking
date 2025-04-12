@@ -84,8 +84,9 @@ async def gacha(interaction: discord.Interaction, tenpull: bool = False):
 
 @gacha.command(name="coinflip", description="Heads or Tails")
 async def coinflip(interaction: discord.Interaction):
-    result = random.choice("Heads", "Tails")
+    await interaction.response.defer()
+    result = random.choice(["Heads", "Tails"])
     await interaction.followup.send(
-            content=f"🎲 You rolled: {result}"
-        )
+        content=f"🎲 You rolled: {result}"
+    )
     return

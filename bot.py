@@ -4,6 +4,7 @@ import discord
 from discord import app_commands
 from discord.utils import get
 from commands import gacha
+from rishan import Request, Cooking
 import random
 
 # Load Discord token from environment variables

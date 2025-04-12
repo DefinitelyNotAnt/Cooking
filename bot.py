@@ -59,7 +59,9 @@ class Client(discord.Client):
     async def on_message(self, message):
         if message.author == self.user:
             return
-        if any(word.lower() in message.content.lower() for word in self.WORD_FILTER)and all(role.name != "Cooking" for role in message.author.roles):
+        if any(word.lower() in message.content.lower() for word in self.WORD_FILTER):
+            if all(role.name != "Cooking" for role in message.author.roles) == False:
+                return
             ADMIN_CHANNEL_ID = 1359891372831670554
             try:
                 await message.delete()

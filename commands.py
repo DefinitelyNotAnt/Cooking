@@ -40,7 +40,7 @@ def load_images_by_category():
 
 IMAGE_MAP = load_images_by_category()
 
-def compose_tenpull_image(image_paths):
+def compose_pulls_image(image_paths):
     images = [Image.open(path).convert("RGBA") for path in image_paths]
     width, height = images[0].size
     grid_image = Image.new("RGBA", (width * 5, height * 2))
@@ -78,31 +78,37 @@ async def gacha(interaction: discord.Interaction, pulls: int = 1):
         return min(results, key=lambda r: LOOT_TABLE[r])
 
     async def send_result(results, images):
-        if pulls>0:
-            final_image = compose_tenpull_image(images)
-            result_text = "\n".join(f"{i+1}. {results[i]}" for i in range(pulls))
-        else:
-            final_image = images[0]
-            result_text = f"You got: **{results[0]}**"
+        pages = [results[i:i+10] for i in range(0, len(results), 10)]
+        image_pages = [images[i:i+10] for i in range(0, len(images), 10)]
+        current_page = 0
 
-        highest_rarity = get_highest_rarity(results)
-        color = RARITY_COLORS[highest_rarity]
+        def summarize_page(results_page):
+            summary = {}
+            for result in results_page:
+                summary[result] = summary.get(result, 0) + 1
+            return "\n".join(f"{item} ×{count}" for item, count in summary.items())
 
-        embed = discord.Embed(
-            title="🎰 Gacha Result",
-            description=result_text,
-            color=color
-        )
-        file = discord.File(final_image, filename="result.png")
-        embed.set_image(url="attachment://result.png")
+        def get_embed_and_file(page):
+            final_image = compose_pulls_image(image_pages[page])
+            highest_rarity = min(pages[page], key=lambda r: LOOT_TABLE[r])
+            color = RARITY_COLORS[highest_rarity]
+            embed = discord.Embed(
+                title=f"🎰 Gacha Result (Page {page+1}/{len(pages)})",
+                description=summarize_page(pages[page]),
+                color=color
+            )
+            file = discord.File(final_image, filename="result.png")
+            embed.set_image(url="attachment://result.png")
+            return embed, file
 
-        # 🔥 Legendary drop message
+        embed, file = get_embed_and_file(current_page)
+
         if "Rishan" in results:
             await interaction.followup.send(
-                f"🟣🔥 **LEGENDARY DROP!!!** 🔥🟣\n{interaction.user.mention} just pulled **Rishan**!\nEveryone bow 🙇‍♂️"
+                f"🟣🔥 **LEGENDARY DROP!!!**  🗣️🔥\n{interaction.user.mention} just pulled **Rishan**!\nEveryone bow 🙇‍♂️"
             )
 
-        return embed, file
+        return embed, file, len(pages), lambda page: get_embed_and_file(page)
 
     try:
         await interaction.response.defer()
@@ -142,3 +148,36 @@ async def coinflip(interaction: discord.Interaction):
         content=f"🎲 You rolled: {result}"
     )
     return
+
+#############################################
+# Custom Command Group                      #
+#############################################
+
+custom_group = app_commands.Group(name="custom", description="For the bot to do stuff")
+
+@custom_group.command(name="welcome",description="Welcome a member")
+async def welcome(interaction: discord.Interaction, user: discord.User = None):
+    try:
+        media_folder = "./joinmedia"
+        images = [f for f in os.listdir(media_folder) if f.endswith(('.png', '.jpg', '.jpeg', '.gif'))]
+
+        if not images:
+            await interaction.response.send_message("No images found in the media folder.", ephemeral=True)
+            return
+
+        random_image = os.path.join(media_folder, random.choice(images))
+
+        mention = user.mention if user else interaction.user.mention
+
+        await interaction.response.send_message(
+            content=(
+                f"Welcome!! {mention}\n"
+                f"For you, here's what you can do here.\n"
+                f"You can view <#1338038250685726820> to find out the various channels, "
+                f"or you can first introduce yourself at <#1338021134612041739>!"
+            ),
+            file=discord.File(random_image)
+        )
+    except Exception as e:
+        print(f"Error in /welcome: {e}")
+        await interaction.response.send_message("Something went wrong while sending the welcome message.", ephemeral=True)

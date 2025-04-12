@@ -9,7 +9,7 @@ from discord import app_commands
 print("Importing utils")
 from discord.utils import get
 print("Importing gacha")
-from commands import gacha_group
+from commands import gacha_group, custom_group
 print("Importing request n cooking")
 from rishan import Request, Cooking
 print("Importing random")
@@ -56,7 +56,7 @@ class Client(discord.Client):
     async def setup_hook(self):
         # Add slash command groups from commands
         self.tree.add_command(gacha_group)
-
+        self.tree.add_command(custom_group)
     async def on_message(self, message):
         if message.author == self.user:
             return

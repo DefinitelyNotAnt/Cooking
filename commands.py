@@ -8,11 +8,11 @@ AUDIT_ROLES = "Maincomm"
 COOKING_ROLE = "Cooking"
 MEDIA_FOLDER = "./joinmedia"
 LOOT_TABLE = {
-    "Cuck" : 0.8,
+    "Cuck" : 0.7,
     "Mascot": 0.1,
     "Kanata": 0.05,
-    "JCC":0.049,
-    "Rishan": 0.001
+    "JCC":0.1,
+    "Rishan": 0.05
 }
 RESULT_IMAGE_MAP = {
     "Cuck": ["cuck"],

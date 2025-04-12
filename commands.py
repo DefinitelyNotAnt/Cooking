@@ -4,7 +4,6 @@ from discord import app_commands
 from PIL import Image
 
 AUDIT_ROLES = "Maincomm"
-PCR_ROLES = "Subcomm 25/26"
 COOKING_ROLE = "Cooking"
 MEDIA_FOLDER = "./joinmedia"
 LOOT_TABLE = {

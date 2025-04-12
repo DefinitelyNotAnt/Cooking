@@ -54,8 +54,8 @@ def roll_loot():
     weights = list(LOOT_TABLE.values())
     return random.choices(items, weights=weights, k=1)[0]
 
-gacha = app_commands.Group(name="gacha", description="Should you gacha")
-@gacha.command(name="gacha", description="Let's go gambling")
+gacha_group = app_commands.Group(name="gacha", description="Should you gacha")
+@gacha_group.command(name="gacha", description="Let's go gambling")
 async def gacha(interaction: discord.Interaction, tenpull: bool = False):
     try:
         await interaction.response.defer()
@@ -82,7 +82,7 @@ async def gacha(interaction: discord.Interaction, tenpull: bool = False):
         )
         print(f"Error in gacha: {e}")
 
-@gacha.command(name="coinflip", description="Heads or Tails")
+@gacha_group.command(name="coinflip", description="Heads or Tails")
 async def coinflip(interaction: discord.Interaction):
     await interaction.response.defer()
     result = random.choice(["Heads", "Tails"])

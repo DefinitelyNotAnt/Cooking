@@ -3,5 +3,8 @@ langchain-groq
 python-dotenv
 langchain-community
 discord
+pymongo[srv]
 requests
+beautifulsoup4
+duckduckgo_search
 pillow

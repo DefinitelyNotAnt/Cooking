@@ -4,15 +4,14 @@ from discord import app_commands
 from PIL import Image
 import random
 
-AUDIT_ROLES = "Maincomm"
 COOKING_ROLE = "Cooking"
 MEDIA_FOLDER = "./joinmedia"
 LOOT_TABLE = {
-    "Cuck" : 0.7,
-    "Mascot": 0.1,
-    "Kanata": 0.05,
-    "JCC":0.1,
-    "Rishan": 0.05
+    "Cuck" : 0.55,
+    "Mascot": 0.20,
+    "Kanata": 0.099,
+    "JCC":0.15,
+    "Rishan": 0.001
 }
 RESULT_IMAGE_MAP = {
     "Cuck": ["cuck"],
@@ -107,7 +106,7 @@ async def gacha(interaction: discord.Interaction, pulls: int = 1):
 
         if "Rishan" in results:
             await interaction.followup.send(
-                f"🟣🔥 **LEGENDARY DROP!!!** 🔥🟣\n{interaction.user.mention} just pulled **Rishan**!\nEveryone bow 🙇‍♂️"
+                f"🗣️🔥 **LEGENDARY DROP!!!** 🔥🗣️\n{interaction.user.mention} just pulled **Rishan**!\nEveryone bow 🙇‍♂️"
             )
 
         embed, file = get_embed_and_file(current_page)

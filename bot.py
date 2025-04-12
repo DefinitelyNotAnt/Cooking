@@ -8,8 +8,10 @@ from rishan import Request, Cooking
 import random
 
 # Load Discord token from environment variables
+print("Loading dotenv")
 load_dotenv()
 discordkey: str = os.getenv('discordkey')
+print("Loaded discordkey")
 
 class Client(discord.Client):
     ROLE_NAME = "Member"  
@@ -187,10 +189,12 @@ class Client(discord.Client):
             except Exception as e:
                 print(f"Error in on_member_join: {e}")
 # Initialize bot with the required intents
+print("Getting intents")
 intents = discord.Intents.default()
 intents.members = True
 intents.message_content = True
 intents.reactions = True  
-
+print("Matching intent to client")
 client = Client(intents=intents)
+print("Running client on discordkey")
 client.run(discordkey)

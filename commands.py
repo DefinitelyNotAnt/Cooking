@@ -66,9 +66,9 @@ def roll_loot():
 gacha_group = app_commands.Group(name="gacha", description="Should you gacha")
 
 @gacha_group.command(name="gacha", description="Let's go gambling")
-async def gacha(interaction: discord.Interaction, tenpull: bool = False):
+async def gacha(interaction: discord.Interaction, pulls: int = 1):
     async def do_pull():
-        pulls = 10 if tenpull else 1
+        pulls = pulls if pulls>0 else 1
         results = [roll_loot() for _ in range(pulls)]
         images = [random.choice(IMAGE_MAP[result]) for result in results]
         return results, images
@@ -78,9 +78,9 @@ async def gacha(interaction: discord.Interaction, tenpull: bool = False):
         return min(results, key=lambda r: LOOT_TABLE[r])
 
     async def send_result(results, images):
-        if tenpull:
+        if pulls>0:
             final_image = compose_tenpull_image(images)
-            result_text = "\n".join(f"{i+1}. {results[i]}" for i in range(10))
+            result_text = "\n".join(f"{i+1}. {results[i]}" for i in range(pulls))
         else:
             final_image = images[0]
             result_text = f"You got: **{results[0]}**"

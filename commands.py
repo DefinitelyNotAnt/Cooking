@@ -1,23 +1,7 @@
-from dotenv import load_dotenv
 import os
-import re
-import requests
-from bs4 import BeautifulSoup
-from duckduckgo_search import DDGS
 import discord
 from discord import app_commands
-from pymongo import MongoClient
 from PIL import Image
-# Load environment variables for database
-load_dotenv()
-mongo_uri = os.getenv("mongouri")
-
-# Connect to MongoDB
-client = MongoClient(mongo_uri)
-db = client["PCRDatabase"]
-users_collection = db["users"]
-pcrs_collection = db["pcrs"]
-audit_logs_collection = db["audit_logs"]
 
 AUDIT_ROLES = "Maincomm"
 PCR_ROLES = "Subcomm 25/26"
@@ -35,7 +19,7 @@ RESULT_IMAGE_MAP = {
     "Mascot": ["mascot"],
     "Kanata": ["kanata"],
     "JCC": ["jcc"],
-    "Rishan": ["rishan", "men"]
+    "Rishan": ["men"]
 }
 def load_images_by_category():
     image_map = {key: [] for key in RESULT_IMAGE_MAP}
@@ -62,20 +46,6 @@ def compose_tenpull_image(image_paths):
     grid_image.save(output_path)
     return output_path
 
-
-
-def user_has_maincomm_role(user) -> bool:
-    """Check if the user has Maincomm role."""
-    return any(role.name == AUDIT_ROLES for role in user.roles)
-
-def user_can_cook(user) -> bool:
-    return any(role.name == COOKING_ROLE for role in user.roles)
-
-def user_can_access_pcr(user, pcr_name):
-    """Check if the user is the owner or has shared access to the PCR."""
-    user_id = str(user.id)
-    pcr = pcrs_collection.find_one({"name": pcr_name, "$or": [{"user_id": user_id}, {"shared_with": user_id}]})
-    return pcr is not None
 #############################################
 # Gacha Command Group                       #
 #############################################

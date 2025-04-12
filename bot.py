@@ -3,8 +3,7 @@ import os
 import discord
 from discord import app_commands
 from discord.utils import get
-from rishan import Request, Cooking
-from pcr import gacha
+from commands import gacha
 import random
 
 # Load Discord token from environment variables
@@ -43,9 +42,8 @@ class Client(discord.Client):
             print(f"Failed to sync commands: {e}")
 
     async def setup_hook(self):
-        # Add slash command groups from pcr.py
-        self.tree.add_command(pcr)
-        self.tree.add_command(source_group)
+        # Add slash command groups from commands
+        self.tree.add_command(gacha)
 
     async def on_message(self, message):
         if message.author == self.user:

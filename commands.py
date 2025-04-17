@@ -109,7 +109,7 @@ async def gacha(interaction: discord.Interaction, pulls: int = 1):
 
         if "Rishan" in results:
             await interaction.followup.send(
-                f"🗣️🔥 **LEGENDARY DROP!!!** 🔥🗣️\n{interaction.user.mention} just pulled **Rishan**!\nEveryone bow 🙇‍♂️"
+                f"🗣️🔥 **LEGENDARY DROP!!!** 🔥🗣️\n{interaction.user.mention} just pulled the **FULL ART**!\nEveryone bow 🙇‍♂️"
             )
 
         embed, file = get_embed_and_file(current_page)

@@ -7,10 +7,10 @@ import random
 COOKING_ROLE = "Cooking"
 MEDIA_FOLDER = "./joinmedia"
 LOOT_TABLE = {
-    "Men" : 0.55,
+    "Men": 0.55,
     "Mascot": 0.20,
     "Kanata": 0.099,
-    "JCC":0.15,
+    "JCC": 0.15,
     "reveal": 0.001
 }
 RESULT_IMAGE_MAP = {
@@ -28,6 +28,7 @@ RARITY_COLORS = {
     "Reveal": 0x800080
 }
 
+
 def load_images_by_category():
     image_map = {key: [] for key in RESULT_IMAGE_MAP}
     for filename in os.listdir(MEDIA_FOLDER):
@@ -37,54 +38,50 @@ def load_images_by_category():
                     image_map[key].append(os.path.join(MEDIA_FOLDER, filename))
     return image_map
 
+
 IMAGE_MAP = load_images_by_category()
 
+
 def compose_pulls_image(image_paths, tile_size=(250, 250)):
-    # Standard size for each image
     width, height = tile_size
     images = [Image.open(path).convert("RGBA").resize((width, height), Image.LANCZOS) for path in image_paths]
-    
     grid_width = width * 5
-    grid_height = height * ((len(images) + 4) // 5)  # handles non-10-pulls too
-    
+    grid_height = height * ((len(images) + 4) // 5)
     grid_image = Image.new("RGBA", (grid_width, grid_height), (0, 0, 0, 0))
-
     for index, img in enumerate(images):
         x = (index % 5) * width
         y = (index // 5) * height
         grid_image.paste(img, (x, y), img)
-
     output_path = os.path.join(MEDIA_FOLDER, "temp_tenpull_result.png")
     grid_image.save(output_path)
     return output_path
 
-
-#############################################
-# Gacha Command Group                       #
-#############################################
 
 def roll_loot():
     items = list(LOOT_TABLE.keys())
     weights = list(LOOT_TABLE.values())
     return random.choices(items, weights=weights, k=1)[0]
 
+
 gacha_group = app_commands.Group(name="gacha", description="Should you gacha")
+
 
 @gacha_group.command(name="gacha", description="Let's go gambling")
 async def gacha(interaction: discord.Interaction, pulls: int = 1):
     print("Pulls: " + str(pulls))
-    if pulls>30:
+    if pulls > 30:
         pulls = 30
     elif pulls < 1:
-        pulls = 1  
+        pulls = 1
+
     async def do_pull():
         results = [roll_loot() for _ in range(pulls)]
         images = [random.choice(IMAGE_MAP[result]) for result in results]
         return results, images
 
     async def send_result(results, images):
-        pages = [results[i:i+10] for i in range(0, len(results), 10)]
-        image_pages = [images[i:i+10] for i in range(0, len(images), 10)]
+        pages = [results[i:i + 10] for i in range(0, len(results), 10)]
+        image_pages = [images[i:i + 10] for i in range(0, len(images), 10)]
 
         def summarize_all(results_full):
             summary = {}
@@ -95,9 +92,9 @@ async def gacha(interaction: discord.Interaction, pulls: int = 1):
         def get_embed_and_file(page_index):
             final_image = compose_pulls_image(image_pages[page_index], tile_size=(250, 250))
             overall_highest = min(results, key=lambda r: LOOT_TABLE[r])
-            color = RARITY_COLORS[overall_highest]
+            color = RARITY_COLORS.get(overall_highest, 0xFFFFFF)
             embed = discord.Embed(
-                title=f"🌰 Gacha Result (Page {page_index+1}/{len(pages)})",
+                title=f"🌰 Gacha Result (Page {page_index + 1}/{len(pages)})",
                 description=summarize_all(results),
                 color=color
             )
@@ -108,18 +105,23 @@ async def gacha(interaction: discord.Interaction, pulls: int = 1):
         return pages, image_pages, get_embed_and_file
 
     try:
-        await interaction.response.defer()
+        if interaction.response.is_done():
+            followup = interaction.followup
+        else:
+            await interaction.response.defer()
+            followup = interaction.followup
+
         results, images = await do_pull()
         pages, image_pages, get_embed_and_file = await send_result(results, images)
         current_page = 0
 
         if "Reveal" in results:
-            await interaction.followup.send(
+            await followup.send(
                 f"🗣️🔥 **LEGENDARY DROP!!!** 🔥🗣️\n{interaction.user.mention} just pulled the **FULL ART**!\nEveryone bow 🙇‍♂️"
             )
 
         embed, file = get_embed_and_file(current_page)
-        message = await interaction.followup.send(embed=embed, file=file)
+        message = await followup.send(embed=embed, file=file)
 
         await message.add_reaction("⬅️")
         await message.add_reaction("🔁")
@@ -145,12 +147,12 @@ async def gacha(interaction: discord.Interaction, pulls: int = 1):
                     try:
                         os.remove(os.path.join(MEDIA_FOLDER, "temp_tenpull_result.png"))
                     except:
-                        pass  # Ignore if not found or locked
+                        pass
                     results, images = await do_pull()
                     pages, image_pages, get_embed_and_file = await send_result(results, images)
                     current_page = 0
                     if "Reveal" in results:
-                        await interaction.followup.send(
+                        await followup.send(
                             f"🗣️🔥 **LEGENDARY DROP!!!** 🔥🗣️\n{interaction.user.mention} just pulled the **FULL ART**!\nEveryone bow 🙇‍♂️"
                         )
 
@@ -165,17 +167,18 @@ async def gacha(interaction: discord.Interaction, pulls: int = 1):
                 print(f"Timeout or error in pagination: {e}")
                 break
 
-        # ✅ Cleanup after pagination ends
         try:
             os.remove(os.path.join(MEDIA_FOLDER, "temp_tenpull_result.png"))
         except Exception as cleanup_error:
             print(f"Failed to delete temp image: {cleanup_error}")
 
     except Exception as e:
-        await interaction.followup.send(
-            "Your gamble results were so bad that it crashed.\nNever try again."
-        )
+        if not interaction.response.is_done():
+            await interaction.response.send_message("Your gamble results were so bad that it crashed.\nNever try again.")
+        else:
+            await interaction.followup.send("Your gamble results were so bad that it crashed.\nNever try again.")
         print(f"Error in gacha: {e}")
+
 
 @gacha_group.command(name="coinflip", description="Heads or Tails")
 async def coinflip(interaction: discord.Interaction):
@@ -184,17 +187,18 @@ async def coinflip(interaction: discord.Interaction):
     await interaction.followup.send(content=f"🎲 You rolled: {result}")
     return
 
-#############################################
-# Custom Command Group                      #
-#############################################
 
 custom_group = app_commands.Group(name="custom", description="For the bot to do stuff")
+
 
 @custom_group.command(name="welcome", description="Welcome a member")
 async def welcome(interaction: discord.Interaction, user: discord.User = None):
     try:
         media_folder = "./joinmedia"
-        images = [f for f in os.listdir(media_folder) if f.endswith(('.png', '.jpg', '.jpeg', '.gif'))]
+        images = [
+            f for f in os.listdir(media_folder)
+            if f.endswith(('.png', '.jpg', '.jpeg', '.gif')) and not f.startswith('temp_')
+        ]
 
         if not images:
             await interaction.response.send_message("No images found in the media folder.", ephemeral=True)

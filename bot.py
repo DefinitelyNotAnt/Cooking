@@ -97,7 +97,11 @@ class Client(discord.Client):
                     # Path to the media folder
                     media_folder = "./joinmedia"
                     # List all image files in the folder
-                    images = [f for f in os.listdir(media_folder) if f.endswith(('.png', '.jpg', '.jpeg', '.gif'))]
+                    images = [
+                        f for f in os.listdir(media_folder)
+                        if f.endswith(('.png', '.jpg', '.jpeg', '.gif')) and not f.startswith('temp_')
+                    ]
+
                     if not images:
                         print("No images found in the media folder.")
                         return
@@ -176,7 +180,11 @@ class Client(discord.Client):
                 # Path to the media folder
                 media_folder = "./joinmedia"
                 # List all image files in the folder
-                images = [f for f in os.listdir(media_folder) if f.endswith(('.png', '.jpg', '.jpeg', '.gif'))]
+                images = [
+                    f for f in os.listdir(media_folder)
+                    if f.endswith(('.png', '.jpg', '.jpeg', '.gif')) and not f.startswith('temp_')
+                ]
+
                 if not images:
                     print("No images found in the media folder.")
                     return

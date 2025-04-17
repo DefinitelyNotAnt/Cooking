@@ -39,19 +39,25 @@ def load_images_by_category():
 
 IMAGE_MAP = load_images_by_category()
 
-def compose_pulls_image(image_paths):
-    images = [Image.open(path).convert("RGBA") for path in image_paths]
-    width, height = images[0].size
-    grid_image = Image.new("RGBA", (width * 5, height * 2))
+def compose_pulls_image(image_paths, tile_size=(250, 250)):
+    # Standard size for each image
+    width, height = tile_size
+    images = [Image.open(path).convert("RGBA").resize((width, height), Image.LANCZOS) for path in image_paths]
+    
+    grid_width = width * 5
+    grid_height = height * ((len(images) + 4) // 5)  # handles non-10-pulls too
+    
+    grid_image = Image.new("RGBA", (grid_width, grid_height), (0, 0, 0, 0))
 
     for index, img in enumerate(images):
         x = (index % 5) * width
         y = (index // 5) * height
-        grid_image.paste(img, (x, y))
+        grid_image.paste(img, (x, y), img)
 
     output_path = os.path.join(MEDIA_FOLDER, "temp_tenpull_result.png")
     grid_image.save(output_path)
     return output_path
+
 
 #############################################
 # Gacha Command Group                       #
@@ -87,7 +93,7 @@ async def gacha(interaction: discord.Interaction, pulls: int = 1):
             return "\n".join(f"{item} ×{count}" for item, count in summary.items())
 
         def get_embed_and_file(page_index):
-            final_image = compose_pulls_image(image_pages[page_index])
+            final_image = compose_pulls_image(image_pages[page_index], tile_size=(250, 250))
             overall_highest = min(results, key=lambda r: LOOT_TABLE[r])
             color = RARITY_COLORS[overall_highest]
             embed = discord.Embed(
@@ -107,7 +113,7 @@ async def gacha(interaction: discord.Interaction, pulls: int = 1):
         pages, image_pages, get_embed_and_file = await send_result(results, images)
         current_page = 0
 
-        if "Rishan" in results:
+        if "Reveal" in results:
             await interaction.followup.send(
                 f"🗣️🔥 **LEGENDARY DROP!!!** 🔥🗣️\n{interaction.user.mention} just pulled the **FULL ART**!\nEveryone bow 🙇‍♂️"
             )

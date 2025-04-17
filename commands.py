@@ -7,18 +7,18 @@ import random
 COOKING_ROLE = "Cooking"
 MEDIA_FOLDER = "./joinmedia"
 LOOT_TABLE = {
-    "Cuck" : 0.55,
+    "Men" : 0.55,
     "Mascot": 0.20,
     "Kanata": 0.099,
     "JCC":0.15,
-    "Rishan": 0.001
+    "reveal": 0.001
 }
 RESULT_IMAGE_MAP = {
-    "Cuck": ["cuck"],
+    "Men": ["men"],
     "Mascot": ["mascot"],
     "Kanata": ["kanata"],
     "JCC": ["jcc"],
-    "Rishan": ["men"]
+    "Reveal": ["reveal"]
 }
 RARITY_COLORS = {
     "Cuck": 0x808080,

@@ -25,7 +25,7 @@ RARITY_COLORS = {
     "Mascot": 0x00FFFF,
     "Kanata": 0xFFD700,
     "JCC": 0xFF69B4,
-    "Rishan": 0x800080
+    "Reveal": 0x800080
 }
 
 def load_images_by_category():
@@ -142,12 +142,16 @@ async def gacha(interaction: discord.Interaction, pulls: int = 1):
                 elif emoji == "➡️" and current_page < len(pages) - 1:
                     current_page += 1
                 elif emoji == "🔁":
+                    try:
+                        os.remove(os.path.join(MEDIA_FOLDER, "temp_tenpull_result.png"))
+                    except:
+                        pass  # Ignore if not found or locked
                     results, images = await do_pull()
                     pages, image_pages, get_embed_and_file = await send_result(results, images)
                     current_page = 0
-                    if "Rishan" in results:
+                    if "Reveal" in results:
                         await interaction.followup.send(
-                            f"🟣🔥 **LEGENDARY DROP!!!** 🔥🟣\n{interaction.user.mention} just pulled **Rishan**!\nEveryone bow 🙇‍♂️"
+                            f"🗣️🔥 **LEGENDARY DROP!!!** 🔥🗣️\n{interaction.user.mention} just pulled the **FULL ART**!\nEveryone bow 🙇‍♂️"
                         )
 
                 embed, file = get_embed_and_file(current_page)
@@ -160,6 +164,12 @@ async def gacha(interaction: discord.Interaction, pulls: int = 1):
             except Exception as e:
                 print(f"Timeout or error in pagination: {e}")
                 break
+
+        # ✅ Cleanup after pagination ends
+        try:
+            os.remove(os.path.join(MEDIA_FOLDER, "temp_tenpull_result.png"))
+        except Exception as cleanup_error:
+            print(f"Failed to delete temp image: {cleanup_error}")
 
     except Exception as e:
         await interaction.followup.send(
